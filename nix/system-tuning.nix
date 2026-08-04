@@ -97,4 +97,15 @@
   programs.bash.completion.enable = false;
 
   services.getty.helpLine = lib.mkForce "";
+
+  environment.systemPackages = with pkgs; [
+    fastfetch
+    nushell
+    git
+    git-lfs
+    curl
+    wget
+    helix
+    zellij
+  ];
 }
