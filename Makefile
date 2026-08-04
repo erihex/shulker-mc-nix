@@ -1,5 +1,4 @@
 HOST ?= $(shell hostname)
-DISK ?= /dev/disk/by-id/ata-QEMU_DVD-ROM_QM00001
 
 .PHONY: switch test format update install clean
 
