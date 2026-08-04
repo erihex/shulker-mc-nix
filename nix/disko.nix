@@ -23,7 +23,7 @@
             nix = {
               priority = 2;
               name = "nix";
-              size = "128G";
+              size = "100G";
               content = {
                 type = "filesystem";
                 format = "xfs";

@@ -54,6 +54,7 @@ in
           
           "mods/whitelistgate.jar" = ../minecraft/mods/whitelistgate-1.0.0-forge-1.20.1.jar;
           "mods/voicechat.jar" = ../minecraft/mods/voicechat-forge-1.20.1-2.6.21.jar;
+          "mods/authmod.jar" = ../minecraft/mods/authmod-1.0.0.jar;
         };
 
         files = {
@@ -68,6 +69,15 @@ in
             max_voice_distance=64.0
             keep_alive=1000
           '';
+
+          "ops.json" = builtins.toJSON [
+            {
+              uuid = "2f240b6b-aef7-35aa-917f-952faeb3f8bc";
+              name = "eri";
+              level = 4;
+              bypassesPlayerLimit = true;
+            }
+          ];
         };
       };
     };
