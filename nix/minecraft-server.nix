@@ -183,7 +183,7 @@ in
       symlinks = {
         "mods" = mergedMods;
 
-        "server-icon.png" = "${modpackExtracted}/server-icon.png";
+        "server-icon.png" = ../minecraft/server-icon.png;
       };
 
       files = {
