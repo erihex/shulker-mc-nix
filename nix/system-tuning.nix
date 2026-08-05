@@ -20,7 +20,9 @@
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
   boot.initrd.availableKernelModules = [
+    "virtio"
     "virtio_pci"
+    "virtio_ring"
     "virtio_blk"
     "virtio_scsi"
     "xfs"
@@ -28,7 +30,13 @@
     "sd_mod"
     "sr_mod"
   ];
-  boot.initrd.kernelModules = [ "xfs" ];
+
+  boot.initrd.kernelModules = [
+    "virtio_pci"
+    "virtio_blk"
+    "xfs"
+  ];
+
   boot.kernelModules = [ "tcp_bbr" ];
   boot.kernel.sysctl = {
     "vm.swappiness" = 10;
@@ -102,7 +110,7 @@
     allowUnfree = true;
   };
 
-  boot.initrd.systemd.enable = true;
+  # boot.initrd.systemd.enable = true;
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
