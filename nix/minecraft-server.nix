@@ -79,46 +79,8 @@ let
     ${copyFiles extraConfigFiles}
   '';
 
-  forgeServer = pkgs.stdenvNoCC.mkDerivation rec {
-    pname = "forge-server";
-    version = "1.20.1-47.4.22";
-
-    src = pkgs.fetchurl {
-      url = "https://maven.minecraftforge.net/net/minecraftforge/forge/${version}/forge-${version}-installer.jar";
-      hash = "sha256-pmuV5n66az9yBHqnMxjkuA7bYW1YNM0FpbquENJWmdY=";
-    };
-
-    dontUnpack = true;
-
-    installPhase = ''
-      mkdir -p $out/bin
-      mkdir -p $out/lib
-
-      cp $src $out/lib/installer.jar
-
-      cat > $out/bin/minecraft-server <<EOF
-      #!${pkgs.runtimeShell}
-      set -euo pipefail
-
-      if [ ! -f libraries/net/minecraftforge/forge/${version}/unix_args.txt ]; then
-        ${pkgs.lib.getExe pkgs.corretto17} \
-          -jar $out/lib/installer.jar \
-          --installServer
-      fi
-
-      exec ${pkgs.lib.getExe pkgs.corretto17} \
-        "$@" \
-        @libraries/net/minecraftforge/forge/${version}/unix_args.txt
-      EOF
-
-      chmod +x $out/bin/minecraft-server
-    '';
-
-    meta = with lib; {
-      mainProgram = "minecraft-server";
-      description = "Forge 1.20.1-47.4.22 server";
-      platforms = platforms.unix;
-    };
+  forgeServer = pkgs.callPackage ./forge-server.nix {
+    jre = pkgs.corretto17;
   };
 in
 {
