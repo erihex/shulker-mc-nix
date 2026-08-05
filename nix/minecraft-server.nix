@@ -1,6 +1,5 @@
 {
   pkgs,
-  inputs,
   lib,
   ...
 }:
@@ -79,6 +78,42 @@ let
 
     ${copyFiles extraConfigFiles}
   '';
+
+  forgeServer = pkgs.stdenvNoCC.mkDerivation rec {
+    pname = "forge-server";
+    version = "1.20.1-47.4.22";
+
+    src = pkgs.fetchurl {
+      url = "https://maven.minecraftforge.net/net/minecraftforge/forge/${version}/forge-${version}-installer.jar";
+      hash = "sha256-pmuV5n66az9yBHqnMxjkuA7bYW1YNM0FpbquENJWmdY=";
+    };
+
+    dontUnpack = true;
+
+    installPhase = ''
+      mkdir -p $out/bin
+      mkdir -p $out/lib
+
+      cp $src $out/lib/installer.jar
+
+      cat > $out/bin/minecraft-server <<EOF
+      #!${pkgs.runtimeShell}
+      set -euo pipefail
+
+      if [ ! -f libraries/net/minecraftforge/forge/${version}/unix_args.txt ]; then
+        ${pkgs.lib.getExe pkgs.corretto17} \
+          -jar $out/lib/installer.jar \
+          --installServer
+      fi
+
+      exec ${pkgs.lib.getExe pkgs.corretto17} \
+        "$@" \
+        @libraries/net/minecraftforge/forge/${version}/unix_args.txt
+      EOF
+
+      chmod +x $out/bin/minecraft-server
+    '';
+  };
 in
 {
   networking.firewall.allowedTCPPorts = [
@@ -97,11 +132,7 @@ in
       enable = true;
       autoStart = true;
 
-      package =
-        inputs.nix-minecraft-forge.legacyPackages."x86_64-linux".forgeServers.forge-1_20_1.override
-          {
-            jre = pkgs.corretto17;
-          };
+      package = forgeServer;
 
       jvmOpts = builtins.concatStringsSep " " [
         "-Xms8G"
