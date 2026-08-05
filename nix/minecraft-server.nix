@@ -1,4 +1,4 @@
-{ pkgs, inputs, ... }:
+{ pkgs, inputs, lib, ... }:
 
 let
   modpackExtracted =
@@ -14,25 +14,66 @@ let
           -d "$out"
       '';
 
+  extraMods = {
+    "whitelistgate.jar" =
+      ../minecraft/mods/whitelistgate-1.0.0-forge-1.20.1.jar;
+
+    "voicechat.jar" =
+      ../minecraft/mods/voicechat-forge-1.20.1-2.6.21.jar;
+
+    "authmod.jar" =
+      ../minecraft/mods/authmod-1.0.0.jar;
+  };
+
+  extraConfigFiles = {
+    "whitelistgate.json" =
+      pkgs.writeText "whitelistgate.json" (
+        builtins.toJSON {
+          enabled = true;
+        }
+      );
+
+    "voicechat/voicechat-server.properties" =
+      pkgs.writeText "voicechat-server.properties" ''
+        port=24454
+        bind_address=0.0.0.0
+        voice_chat_distance=48.0
+        max_voice_distance=64.0
+        keep_alive=1000
+      '';
+
+    # Add more configuration files like this:
+    #
+    # "some-mod/settings.toml" =
+    #   pkgs.writeText "settings.toml" ''
+    #     enabled = true
+    #   '';
+  };
+
+  copyFiles =
+    files:
+    lib.concatStringsSep "\n" (
+      lib.mapAttrsToList (
+        destination: source:
+        ''
+          mkdir -p "$out/$(dirname ${lib.escapeShellArg destination})"
+          cp ${lib.escapeShellArg (toString source)} \
+            "$out/${destination}"
+        ''
+      ) files
+    );
+
   mergedMods =
     pkgs.runCommand "integrated-mc-merged-mods"
       { }
       ''
         mkdir -p "$out"
 
-        cp -r ${modpackExtracted}/mods/. "$out/"
+        if [ -d ${modpackExtracted}/mods ]; then
+          cp -r ${modpackExtracted}/mods/. "$out/"
+        fi
 
-        cp \
-          ${../minecraft/mods/whitelistgate-1.0.0-forge-1.20.1.jar} \
-          "$out/whitelistgate.jar"
-
-        cp \
-          ${../minecraft/mods/voicechat-forge-1.20.1-2.6.21.jar} \
-          "$out/voicechat.jar"
-
-        cp \
-          ${../minecraft/mods/authmod-1.0.0.jar} \
-          "$out/authmod.jar"
+        ${copyFiles extraMods}
       '';
 
   mergedConfig =
@@ -45,21 +86,7 @@ let
           cp -r ${modpackExtracted}/config/. "$out/"
         fi
 
-        mkdir -p "$out/voicechat"
-
-        cat > "$out/whitelistgate.json" <<'EOF'
-        ${builtins.toJSON {
-          enabled = true;
-        }}
-        EOF
-
-        cat > "$out/voicechat/voicechat-server.properties" <<'EOF'
-        port=24454
-        bind_address=0.0.0.0
-        voice_chat_distance=48.0
-        max_voice_distance=64.0
-        keep_alive=1000
-        EOF
+        ${copyFiles extraConfigFiles}
       '';
 in
 {
@@ -91,7 +118,7 @@ in
             };
 
       jvmOpts = builtins.concatStringsSep " " [
-        "-Xms4G"
+        "-Xms8G"
         "-Xmx12G"
         "-XX:+UseZGC"
         "-XX:+ZGenerational"
