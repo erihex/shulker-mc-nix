@@ -32,11 +32,7 @@
                 format = "xfs";
                 mountpoint = "/nix";
                 mountOptions = [
-                  "defaults"
                   "noatime"
-                  "logbufs=8"
-                  "logbsize=256k"
-                  "allocsize=64M"
                 ];
               };
             };
@@ -50,11 +46,7 @@
                 format = "xfs";
                 mountpoint = "/";
                 mountOptions = [
-                  "defaults"
                   "noatime"
-                  "logbufs=8"
-                  "logbsize=256k"
-                  "allocsize=64M"
                 ];
               };
             };
