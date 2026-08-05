@@ -41,6 +41,7 @@ let
   # supported.
   excludedServerMods = [
     "CrashAssistant-*.jar"
+    "alltheleaks-*.jar"
   ];
 
   # Additional declarative files overlaid onto the modpack's config
