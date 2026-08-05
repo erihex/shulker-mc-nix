@@ -1,4 +1,9 @@
-{ pkgs, inputs, lib, ... }:
+{
+  pkgs,
+  inputs,
+  lib,
+  ...
+}:
 
 let
   modpackExtracted =
@@ -15,32 +20,27 @@ let
       '';
 
   extraMods = {
-    "whitelistgate.jar" =
-      ../minecraft/mods/whitelistgate-1.0.0-forge-1.20.1.jar;
+    "whitelistgate.jar" = ../minecraft/mods/whitelistgate-1.0.0-forge-1.20.1.jar;
 
-    "voicechat.jar" =
-      ../minecraft/mods/voicechat-forge-1.20.1-2.6.21.jar;
+    "voicechat.jar" = ../minecraft/mods/voicechat-forge-1.20.1-2.6.21.jar;
 
-    "authmod.jar" =
-      ../minecraft/mods/authmod-1.0.0.jar;
+    "authmod.jar" = ../minecraft/mods/authmod-1.0.0.jar;
   };
 
   extraConfigFiles = {
-    "whitelistgate.json" =
-      pkgs.writeText "whitelistgate.json" (
-        builtins.toJSON {
-          enabled = true;
-        }
-      );
+    "whitelistgate.json" = pkgs.writeText "whitelistgate.json" (
+      builtins.toJSON {
+        enabled = true;
+      }
+    );
 
-    "voicechat/voicechat-server.properties" =
-      pkgs.writeText "voicechat-server.properties" ''
-        port=24454
-        bind_address=0.0.0.0
-        voice_chat_distance=48.0
-        max_voice_distance=64.0
-        keep_alive=1000
-      '';
+    "voicechat/voicechat-server.properties" = pkgs.writeText "voicechat-server.properties" ''
+      port=24454
+      bind_address=0.0.0.0
+      voice_chat_distance=48.0
+      max_voice_distance=64.0
+      keep_alive=1000
+    '';
 
     # Add more configuration files like this:
     #
@@ -53,41 +53,30 @@ let
   copyFiles =
     files:
     lib.concatStringsSep "\n" (
-      lib.mapAttrsToList (
-        destination: source:
-        ''
-          mkdir -p "$out/$(dirname ${lib.escapeShellArg destination})"
-          cp ${lib.escapeShellArg (toString source)} \
-            "$out/${destination}"
-        ''
-      ) files
+      lib.mapAttrsToList (destination: source: ''
+        install -Dm644 ${source} "$out/${destination}"
+      '') files
     );
 
-  mergedMods =
-    pkgs.runCommand "integrated-mc-merged-mods"
-      { }
-      ''
-        mkdir -p "$out"
+  mergedMods = pkgs.runCommand "integrated-mc-merged-mods" { } ''
+    mkdir -p "$out"
 
-        if [ -d ${modpackExtracted}/mods ]; then
-          cp -r ${modpackExtracted}/mods/. "$out/"
-        fi
+    if [ -d ${modpackExtracted}/mods ]; then
+      cp -r ${modpackExtracted}/mods/. "$out/"
+    fi
 
-        ${copyFiles extraMods}
-      '';
+    ${copyFiles extraMods}
+  '';
 
-  mergedConfig =
-    pkgs.runCommand "integrated-mc-merged-config"
-      { }
-      ''
-        mkdir -p "$out"
+  mergedConfig = pkgs.runCommand "integrated-mc-merged-config" { } ''
+    mkdir -p "$out"
 
-        if [ -d ${modpackExtracted}/config ]; then
-          cp -r ${modpackExtracted}/config/. "$out/"
-        fi
+    if [ -d ${modpackExtracted}/config ]; then
+      cp -r ${modpackExtracted}/config/. "$out/"
+    fi
 
-        ${copyFiles extraConfigFiles}
-      '';
+    ${copyFiles extraConfigFiles}
+  '';
 in
 {
   networking.firewall.allowedTCPPorts = [
@@ -107,15 +96,10 @@ in
       autoStart = true;
 
       package =
-        inputs.nix-minecraft-forge
-          .legacyPackages
-          ."x86_64-linux"
-          .forgeServers
-          .forge-1_20_1
-          .override
-            {
-              jre = pkgs.corretto21;
-            };
+        inputs.nix-minecraft-forge.legacyPackages."x86_64-linux".forgeServers.forge-1_20_1.override
+          {
+            jre = pkgs.corretto21;
+          };
 
       jvmOpts = builtins.concatStringsSep " " [
         "-Xms8G"
