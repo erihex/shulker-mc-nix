@@ -7,9 +7,25 @@ let
         nativeBuildInputs = [ pkgs.unzip ];
       }
       ''
-        mkdir -p $out
-        unzip ${../minecraft/Integrated_Minecraft-1.6.8_server_pack.zip} -d $out
+        mkdir -p "$out"
+        unzip ${../minecraft/Integrated_Minecraft-1.6.8_server_pack.zip} \
+          -d "$out"
       '';
+
+  mergedMods = pkgs.runCommand "integrated-mc-merged-mods" { } ''
+    mkdir -p "$out"
+
+    cp -r ${modpackExtracted}/mods/. "$out/"
+
+    cp ${../minecraft/mods/whitelistgate-1.0.0-forge-1.20.1.jar} \
+      "$out/whitelistgate.jar"
+
+    cp ${../minecraft/mods/voicechat-forge-1.20.1-2.6.21.jar} \
+      "$out/voicechat.jar"
+
+    cp ${../minecraft/mods/authmod-1.0.0.jar} \
+      "$out/authmod.jar"
+  '';
 in
 {
   networking.firewall.allowedTCPPorts = [ 25565 ];
@@ -58,15 +74,11 @@ in
         };
 
         symlinks = {
-          "mods" = "${modpackExtracted}/mods";
+          "mods" = mergedMods;
           "config" = "${modpackExtracted}/config";
           "defaultconfigs" = "${modpackExtracted}/defaultconfigs";
           "kubejs" = "${modpackExtracted}/kubejs";
           "server-icon.png" = "${modpackExtracted}/server-icon.png";
-
-          "mods/whitelistgate.jar" = ../minecraft/mods/whitelistgate-1.0.0-forge-1.20.1.jar;
-          "mods/voicechat.jar" = ../minecraft/mods/voicechat-forge-1.20.1-2.6.21.jar;
-          "mods/authmod.jar" = ../minecraft/mods/authmod-1.0.0.jar;
         };
 
         files = {
