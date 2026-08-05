@@ -3,7 +3,7 @@ HOST ?= shulker-mc
 .PHONY: switch test update install clean
 
 switch:
-	sudo nixos-rebuild switch --flake .#$(HOST) --extra-experimental-features "nix-command flakes"
+	sudo nixos-rebuild switch --flake path:.#$(HOST)
 
 test:
 	sudo nixos-rebuild dry-activate --flake .#$(HOST) --extra-experimental-features "nix-command flakes"
