@@ -144,5 +144,6 @@
     wget
     helix
     zellij
+    gnumake
   ];
 }
