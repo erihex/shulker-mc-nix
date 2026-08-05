@@ -24,9 +24,11 @@ in
         enable = true;
         autoStart = true;
 
-        package = inputs.nix-minecraft-forge.legacyPackages."x86_64-linux".forgeServers.forge-1_20_1.override {
-          jre = pkgs.corretto21;
-        };
+        package =
+          inputs.nix-minecraft-forge.legacyPackages."x86_64-linux".forgeServers.forge-1_20_1.override
+            {
+              jre = pkgs.corretto21;
+            };
 
         jvmOpts = builtins.concatStringsSep " " [
           "-Xms4G"

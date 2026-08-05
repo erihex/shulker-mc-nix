@@ -19,6 +19,16 @@
 
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
+  boot.initrd.availableKernelModules = [
+    "virtio_pci"
+    "virtio_blk"
+    "virtio_scsi"
+    "xfs"
+    "ahci"
+    "sd_mod"
+    "sr_mod"
+  ];
+  boot.initrd.kernelModules = [ "xfs" ];
   boot.kernelModules = [ "tcp_bbr" ];
   boot.kernel.sysctl = {
     "vm.swappiness" = 10;
