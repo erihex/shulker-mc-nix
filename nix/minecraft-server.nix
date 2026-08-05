@@ -98,14 +98,14 @@ in
       package =
         inputs.nix-minecraft-forge.legacyPackages."x86_64-linux".forgeServers.forge-1_20_1.override
           {
-            jre = pkgs.corretto21;
+            jre = pkgs.corretto17;
           };
 
       jvmOpts = builtins.concatStringsSep " " [
-        "-Xms8G"
+        "-Xms4G"
         "-Xmx12G"
         "-XX:+UseZGC"
-        "-XX:+ZGenerational"
+        # "-XX:+ZGenerational"
       ];
 
       serverProperties = {
