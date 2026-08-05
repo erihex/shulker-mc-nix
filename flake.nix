@@ -26,7 +26,7 @@
       nix-minecraft,
       disko,
       ...
-    }:
+    }@inputs:
 
     let
       system = "x86_64-linux";
@@ -37,6 +37,7 @@
       nixosConfigurations = {
         shulker-mc = nixpkgs.lib.nixosSystem {
           inherit system;
+          specialArgs = { inherit inputs; };
           modules = [
             disko.nixosModules.disko
             nix-minecraft.nixosModules.minecraft-servers
