@@ -29,10 +29,10 @@ let
   # The attribute name becomes the destination filename.
   extraMods = {
     "whitelistgate.jar" = ../minecraft/mods/whitelistgate-1.0.0-forge-1.20.1.jar;
-
     "voicechat.jar" = ../minecraft/mods/voicechat-forge-1.20.1-2.6.21.jar;
-
     "authmod.jar" = ../minecraft/mods/authmod-1.0.0.jar;
+    "ftb-chunks.jar" = ../minecraft/mods/ftb-chunks-forge-2001.3.8.jar;
+    "ftb-essentials.jar" = ../minecraft/mods/ftb-essentials-forge-2001.2.4.jar;
   };
 
   # Mods bundled in the pack that must not run on the dedicated server.
