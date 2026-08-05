@@ -6,6 +6,8 @@
 }:
 
 {
+  networking.hostName = "shulker-mc";
+
   powerManagement.cpuFreqGovernor = "performance";
   boot.kernelParams = [
     "mitigations=off"
@@ -70,7 +72,6 @@
         "nix-command"
         "flakes"
         "auto-allocate-uids"
-        "configurable-impure-env"
       ];
       trusted-users = [
         "root"
@@ -92,6 +93,7 @@
     allowUnfree = true;
   };
 
+  boot.initrd.systemd.enable = true;
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
