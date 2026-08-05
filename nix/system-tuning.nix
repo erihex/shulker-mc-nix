@@ -43,8 +43,7 @@
     "vm.dirty_background_ratio" = 5;
     "vm.dirty_ratio" = 10;
     "vm.max_map_count" = 1048576;
-    "vm.overcommit_memory" = 2;
-    "vm.overcommit_ratio" = 80;
+    "vm.overcommit_memory" = 1;
 
     "net.core.default_qdisc" = "fq";
     "net.ipv4.tcp_congestion_control" = "bbr";

@@ -102,7 +102,7 @@ in
           };
 
       jvmOpts = builtins.concatStringsSep " " [
-        "-Xms4G"
+        "-Xms2G"
         "-Xmx12G"
         "-XX:+UseZGC"
         # "-XX:+ZGenerational"
