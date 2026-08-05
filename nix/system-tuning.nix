@@ -84,7 +84,6 @@
       connect-timeout = 5;
       http-connections = 32;
       always-allow-substitutes = true;
-      impure-env = [ "NIXPKGS_ALLOW_UNFREE" ];
       builders-use-substitutes = true;
     };
   };
