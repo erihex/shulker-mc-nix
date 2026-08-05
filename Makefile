@@ -1,11 +1,11 @@
 HOST ?= shulker-mc
 
-.PHONY: switch test format update install clean
+.PHONY: switch test update install clean
 
-switch: format
+switch:
 	sudo nixos-rebuild switch --flake .#$(HOST) --extra-experimental-features "nix-command flakes"
 
-test: format
+test:
 	sudo nixos-rebuild dry-activate --flake .#$(HOST) --extra-experimental-features "nix-command flakes"
 
 update:
@@ -15,7 +15,7 @@ install:
 	sudo nix --experimental-features "nix-command flakes" run \
 		github:nix-community/disko/latest -- \
 		--mode destroy,format,mount ./nix/disko.nix
-	sudo nixos-install --flake .#$(HOST)
+	sudo nixos-install --flake path:.#$(HOST)
 
 clean:
 	sudo nix-env --profile /nix/var/nix/profiles/system --delete-generations +3
