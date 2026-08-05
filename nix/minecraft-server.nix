@@ -42,10 +42,12 @@ let
       keep_alive=1000
     '';
 
-    # Add more configuration files like this:
+    # Add more configuration files here.
+    #
+    # Example:
     #
     # "some-mod/settings.toml" =
-    #   pkgs.writeText "settings.toml" ''
+    #   pkgs.writeText "some-mod-settings.toml" ''
     #     enabled = true
     #   '';
   };
@@ -102,18 +104,21 @@ in
           };
 
       jvmOpts = builtins.concatStringsSep " " [
-        "-Xms2G"
+        "-Xms8G"
         "-Xmx12G"
         "-XX:+UseZGC"
-        # "-XX:+ZGenerational"
       ];
 
       serverProperties = {
         server-port = 25565;
+        server-ip = "";
+
         gamemode = "survival";
         difficulty = "medium";
         motd = "§cч§6а§eт§aи§bк§d, §cа§6б§eо§aб§bа";
+
         max-players = 42;
+
         online-mode = false;
         white-list = false;
         enable-rcon = false;
@@ -130,10 +135,15 @@ in
 
       symlinks = {
         "mods" = mergedMods;
-        "config" = mergedConfig;
-        "defaultconfigs" = "${modpackExtracted}/defaultconfigs";
-        "kubejs" = "${modpackExtracted}/kubejs";
         "server-icon.png" = "${modpackExtracted}/server-icon.png";
+      };
+
+      files = {
+        "config" = mergedConfig;
+
+        "defaultconfigs" = "${modpackExtracted}/defaultconfigs";
+
+        "kubejs" = "${modpackExtracted}/kubejs";
       };
     };
   };
