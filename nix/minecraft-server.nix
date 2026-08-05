@@ -113,6 +113,12 @@ let
 
       chmod +x $out/bin/minecraft-server
     '';
+
+    meta = with lib; {
+      mainProgram = "minecraft-server";
+      description = "Forge 1.20.1-47.4.22 server";
+      platforms = platforms.unix;
+    };
   };
 in
 {
