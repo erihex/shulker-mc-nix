@@ -68,11 +68,13 @@ in
         };
 
         files = {
-          "config/whitelistgate.json" = builtins.toJSON {
-            enabled = true;
-          };
+          "config/whitelistgate.json" = pkgs.writeText "whitelistgate.json" (
+            builtins.toJSON {
+              enabled = true;
+            }
+          );
 
-          "config/voicechat/voicechat-server.properties" = ''
+          "config/voicechat/voicechat-server.properties" = pkgs.writeText "voicechat-server.properties" ''
             port=24454
             bind_address=0.0.0.0
             voice_chat_distance=48.0
