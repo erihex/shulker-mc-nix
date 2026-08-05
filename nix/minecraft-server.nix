@@ -24,10 +24,9 @@ let
           -d "$out"
       '';
 
-  # Additional server-side mods overlaid onto the modpack.
+  # Additional server-side mods placed into the final mods directory.
   #
-  # The attribute name is the resulting filename in the server's mods
-  # directory. Add more server mods here when needed.
+  # The attribute name becomes the destination filename.
   extraMods = {
     "whitelistgate.jar" = ../minecraft/mods/whitelistgate-1.0.0-forge-1.20.1.jar;
 
@@ -36,16 +35,18 @@ let
     "authmod.jar" = ../minecraft/mods/authmod-1.0.0.jar;
   };
 
-  # Mods from the supplied pack that must not be loaded by the dedicated
-  # server. Shell glob patterns are supported.
+  # Mods bundled in the pack that must not run on the dedicated server.
+  #
+  # These values are passed to `find -name`, so wildcard patterns are
+  # supported.
   excludedServerMods = [
     "CrashAssistant-*.jar"
   ];
 
-  # Declarative configuration files overlaid onto the modpack's original
-  # config directory.
+  # Additional declarative files overlaid onto the modpack's config
+  # directory.
   #
-  # Add new entries using paths relative to config/.
+  # Paths are relative to config/.
   extraConfigFiles = {
     "whitelistgate.json" = pkgs.writeText "whitelistgate.json" (
       builtins.toJSON {
@@ -61,7 +62,7 @@ let
       keep_alive=1000
     '';
 
-    # Example:
+    # Add more configuration files like this:
     #
     # "some-mod/settings.toml" =
     #   pkgs.writeText "some-mod-settings.toml" ''
@@ -73,33 +74,52 @@ let
     files:
     lib.concatStringsSep "\n" (
       lib.mapAttrsToList (destination: source: ''
-        install -Dm644 ${source} "$out/${destination}"
+        install -Dm644 \
+          ${source} \
+          "$out/${destination}"
       '') files
     );
 
   removeExcludedMods = lib.concatMapStringsSep "\n" (pattern: ''
-    rm -f "$out"/${lib.escapeShellArg pattern}
+    find "$out" \
+      -maxdepth 1 \
+      -type f \
+      -name ${lib.escapeShellArg pattern} \
+      -print \
+      -delete
   '') excludedServerMods;
 
   mergedMods = pkgs.runCommand "integrated-mc-merged-mods" { } ''
     mkdir -p "$out"
 
     if [ -d ${modpackExtracted}/mods ]; then
-      cp -r ${modpackExtracted}/mods/. "$out/"
+      cp -r \
+        ${modpackExtracted}/mods/. \
+        "$out/"
     fi
 
-    # Remove client-only or otherwise server-incompatible pack entries.
     ${removeExcludedMods}
 
-    # Overlay explicitly managed server-side mods.
     ${copyFiles extraMods}
+
+    if find "$out" \
+      -maxdepth 1 \
+      -type f \
+      -iname '*crashassistant*' |
+      grep -q .
+    then
+      echo "Crash Assistant was not removed from the server mod set" >&2
+      exit 1
+    fi
   '';
 
   mergedConfig = pkgs.runCommand "integrated-mc-merged-config" { } ''
     mkdir -p "$out"
 
     if [ -d ${modpackExtracted}/config ]; then
-      cp -r ${modpackExtracted}/config/. "$out/"
+      cp -r \
+        ${modpackExtracted}/config/. \
+        "$out/"
     fi
 
     ${copyFiles extraConfigFiles}
@@ -135,7 +155,6 @@ in
       serverProperties = {
         server-port = 25565;
 
-        # Empty means Minecraft listens on available interfaces.
         server-ip = "";
 
         gamemode = "survival";
