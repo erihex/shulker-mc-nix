@@ -1,12 +1,15 @@
-{ pkgs, ... }:
+{ pkgs, inputs, ... }:
 
 let
-  modpackExtracted = pkgs.runCommand "integrated-mc-unpacked" {
-    nativeBuildInputs = [ pkgs.unzip ];
-  } ''
-    mkdir -p $out
-    unzip ${../minecraft/Integrated_Minecraft-1.6.8_server_pack.zip} -d $out
-  '';
+  modpackExtracted =
+    pkgs.runCommand "integrated-mc-unpacked"
+      {
+        nativeBuildInputs = [ pkgs.unzip ];
+      }
+      ''
+        mkdir -p $out
+        unzip ${../minecraft/Integrated_Minecraft-1.6.8_server_pack.zip} -d $out
+      '';
 in
 {
   networking.firewall.allowedTCPPorts = [ 25565 ];
@@ -19,18 +22,17 @@ in
     servers = {
       shulker = {
         enable = true;
+        autoStart = true;
 
-        package = pkgs.forgeServers.forge-1_20_1;
-        jvmPackage = pkgs.corretto21;
+        package = inputs.nix-minecraft-forge.packages."x86_64-linux".forgeServers.forge-1_20_1.override {
+          jre = pkgs.corretto21;
+        };
 
         jvmOpts = builtins.concatStringsSep " " [
           "-Xms4G"
           "-Xmx10G"
           "-XX:+UseZGC"
           "-XX:+ZGenerational"
-          "-XX:+AlwaysPreTouch"
-          "-XX:+ParallelRefProcEnabled"
-          "-XX:+DisableExplicitGC"
         ];
 
         serverProperties = {
@@ -45,13 +47,21 @@ in
           enforce-secure-profile = false;
         };
 
+        operators = {
+          "eri" = {
+            uuid = "2f240b6b-aef7-35aa-917f-952faeb3f8bc";
+            level = 4;
+            bypassesPlayerLimit = true;
+          };
+        };
+
         symlinks = {
           "mods" = "${modpackExtracted}/mods";
           "config" = "${modpackExtracted}/config";
           "defaultconfigs" = "${modpackExtracted}/defaultconfigs";
           "kubejs" = "${modpackExtracted}/kubejs";
           "server-icon.png" = "${modpackExtracted}/server-icon.png";
-          
+
           "mods/whitelistgate.jar" = ../minecraft/mods/whitelistgate-1.0.0-forge-1.20.1.jar;
           "mods/voicechat.jar" = ../minecraft/mods/voicechat-forge-1.20.1-2.6.21.jar;
           "mods/authmod.jar" = ../minecraft/mods/authmod-1.0.0.jar;
@@ -69,15 +79,6 @@ in
             max_voice_distance=64.0
             keep_alive=1000
           '';
-
-          "ops.json" = builtins.toJSON [
-            {
-              uuid = "2f240b6b-aef7-35aa-917f-952faeb3f8bc";
-              name = "eri";
-              level = 4;
-              bypassesPlayerLimit = true;
-            }
-          ];
         };
       };
     };

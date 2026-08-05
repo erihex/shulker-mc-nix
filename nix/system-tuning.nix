@@ -1,4 +1,9 @@
-{ pkgs, inputs, lib, ... }:
+{
+  pkgs,
+  inputs,
+  lib,
+  ...
+}:
 
 {
   powerManagement.cpuFreqGovernor = "performance";
@@ -6,7 +11,7 @@
     "mitigations=off"
 
     "nvme_core.default_ps_max_latency_us=0"
-    
+
     "log_buf_len=20M"
   ];
 
@@ -42,8 +47,18 @@
   '';
 
   security.pam.loginLimits = [
-    { domain = "*"; item = "nofile"; type = "soft"; value = "524288"; }
-    { domain = "*"; item = "nofile"; type = "hard"; value = "524288"; }
+    {
+      domain = "*";
+      item = "nofile";
+      type = "soft";
+      value = "524288";
+    }
+    {
+      domain = "*";
+      item = "nofile";
+      type = "hard";
+      value = "524288";
+    }
   ];
 
   nix = {
@@ -79,7 +94,7 @@
 
   programs.nix-ld.enable = true;
   services.envfs.enable = true;
-  
+
   services.journald.extraConfig = "SystemMaxUse=200M";
   systemd.coredump.settings.Coredump.MaxUse = "200M";
 
