@@ -5,10 +5,16 @@
 }:
 
 let
+  forgeServer = pkgs.callPackage ./forge-server.nix {
+    jre = pkgs.corretto17;
+  };
+
   modpackExtracted =
     pkgs.runCommand "integrated-mc-unpacked"
       {
-        nativeBuildInputs = [ pkgs.unzip ];
+        nativeBuildInputs = [
+          pkgs.unzip
+        ];
       }
       ''
         mkdir -p "$out"
@@ -18,6 +24,10 @@ let
           -d "$out"
       '';
 
+  # Additional server-side mods overlaid onto the modpack.
+  #
+  # The attribute name is the resulting filename in the server's mods
+  # directory. Add more server mods here when needed.
   extraMods = {
     "whitelistgate.jar" = ../minecraft/mods/whitelistgate-1.0.0-forge-1.20.1.jar;
 
@@ -26,6 +36,16 @@ let
     "authmod.jar" = ../minecraft/mods/authmod-1.0.0.jar;
   };
 
+  # Mods from the supplied pack that must not be loaded by the dedicated
+  # server. Shell glob patterns are supported.
+  excludedServerMods = [
+    "CrashAssistant-*.jar"
+  ];
+
+  # Declarative configuration files overlaid onto the modpack's original
+  # config directory.
+  #
+  # Add new entries using paths relative to config/.
   extraConfigFiles = {
     "whitelistgate.json" = pkgs.writeText "whitelistgate.json" (
       builtins.toJSON {
@@ -41,8 +61,6 @@ let
       keep_alive=1000
     '';
 
-    # Add more configuration files here.
-    #
     # Example:
     #
     # "some-mod/settings.toml" =
@@ -59,6 +77,10 @@ let
       '') files
     );
 
+  removeExcludedMods = lib.concatMapStringsSep "\n" (pattern: ''
+    rm -f "$out"/${lib.escapeShellArg pattern}
+  '') excludedServerMods;
+
   mergedMods = pkgs.runCommand "integrated-mc-merged-mods" { } ''
     mkdir -p "$out"
 
@@ -66,6 +88,10 @@ let
       cp -r ${modpackExtracted}/mods/. "$out/"
     fi
 
+    # Remove client-only or otherwise server-incompatible pack entries.
+    ${removeExcludedMods}
+
+    # Overlay explicitly managed server-side mods.
     ${copyFiles extraMods}
   '';
 
@@ -78,19 +104,17 @@ let
 
     ${copyFiles extraConfigFiles}
   '';
-
-  forgeServer = pkgs.callPackage ./forge-server.nix {
-    jre = pkgs.corretto17;
-  };
 in
 {
-  networking.firewall.allowedTCPPorts = [
-    25565
-  ];
+  networking.firewall = {
+    allowedTCPPorts = [
+      25565
+    ];
 
-  networking.firewall.allowedUDPPorts = [
-    24454
-  ];
+    allowedUDPPorts = [
+      24454
+    ];
+  };
 
   services.minecraft-servers = {
     enable = true;
@@ -110,10 +134,13 @@ in
 
       serverProperties = {
         server-port = 25565;
+
+        # Empty means Minecraft listens on available interfaces.
         server-ip = "";
 
         gamemode = "survival";
         difficulty = "medium";
+
         motd = "§cч§6а§eт§aи§bк§d, §cа§6б§eо§aб§bа";
 
         max-players = 42;
@@ -127,6 +154,7 @@ in
       operators = {
         eri = {
           uuid = "2f240b6b-aef7-35aa-917f-952faeb3f8bc";
+
           level = 4;
           bypassesPlayerLimit = true;
         };
@@ -134,6 +162,7 @@ in
 
       symlinks = {
         "mods" = mergedMods;
+
         "server-icon.png" = "${modpackExtracted}/server-icon.png";
       };
 
