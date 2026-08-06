@@ -5,164 +5,101 @@
 }:
 
 let
-  forgeServer = pkgs.callPackage ./forge-server.nix {
-    jre = pkgs.corretto17;
-  };
+  # ATM10 7.3 server pack from minecraft/ATM10-ServerFiles-7.3.zip.
+  # The archive shown for this deployment uses Minecraft 1.21.1 and
+  # NeoForge 21.1.206, so keep the loader pinned instead of following
+  # nix-minecraft's moving "latest" alias.
+  minecraftVersion = "1.21.1";
+  neoforgeVersion = "21.1.206";
 
-  modpackExtracted =
-    pkgs.runCommand "integrated-mc-unpacked"
+  neoforgePackageName =
+    "neoforge-"
+    + lib.replaceStrings [ "." ] [ "_" ] minecraftVersion
+    + "-"
+    + lib.replaceStrings [ "." ] [ "_" ] neoforgeVersion;
+
+  server = pkgs.neoforgeServers.${neoforgePackageName};
+
+  modpackArchive = ../minecraft/ATM10-ServerFiles-7.3.zip;
+  extraModsDir = ../minecraft/mods;
+
+  modpack =
+    pkgs.runCommand "atm10-7.3-server-files"
       {
-        nativeBuildInputs = [
-          pkgs.unzip
-        ];
+        nativeBuildInputs = [ pkgs.unzip ];
       }
       ''
         mkdir -p "$out"
-
-        unzip \
-          ${../minecraft/Integrated_Minecraft-1.6.8_server_pack.zip} \
-          -d "$out"
+        unzip -q ${modpackArchive} -d "$out"
       '';
 
-  # Additional server-side mods placed into the final mods directory.
-  #
-  # The attribute name becomes the destination filename.
-  extraMods = {
-    "whitelistgate.jar" = ../minecraft/mods/whitelistgate-1.0.0-forge-1.20.1.jar;
-    "voicechat.jar" = ../minecraft/mods/voicechat-forge-1.20.1-2.6.21.jar;
-    "authmod.jar" = ../minecraft/mods/authmod-1.0.0.jar;
-    "ftb-chunks.jar" = ../minecraft/mods/ftb-chunks-forge-2001.3.8.jar;
-    "ftb-essentials.jar" = ../minecraft/mods/ftb-essentials-forge-2001.2.4.jar;
-  };
+  # ATM10's own mods plus every additional JAR committed under minecraft/mods/.
+  # There is deliberately no exclusion list here: the old exclusions belonged
+  # to the previous Integrated MC deployment, not to ATM10.
+  mergedMods = pkgs.runCommand "atm10-7.3-merged-mods" { } ''
+    mkdir -p "$out"
 
-  # Mods bundled in the pack that must not run on the dedicated server.
-  #
-  # These values are passed to `find -name`, so wildcard patterns are
-  # supported.
-  excludedServerMods = [
-    "CrashAssistant-*.jar"
-    "alltheleaks-*.jar"
-  ];
+    if [ -d ${modpack}/mods ]; then
+      cp -a ${modpack}/mods/. "$out/"
+    fi
 
-  # Additional declarative files overlaid onto the modpack's config
-  # directory.
-  #
-  # Paths are relative to config/.
-  extraConfigFiles = {
-    "whitelistgate.json" = pkgs.writeText "whitelistgate.json" (
-      builtins.toJSON {
-        enabled = true;
-      }
-    );
+    if [ -d ${extraModsDir} ]; then
+      cp -a ${extraModsDir}/. "$out/"
+    fi
+  '';
 
-    "voicechat/voicechat-server.properties" = pkgs.writeText "voicechat-server.properties" ''
+  # ATM10 configuration is copied from the server pack and then amended with
+  # settings for locally-added server mods.
+  mergedConfig = pkgs.runCommand "atm10-7.3-merged-config" { } ''
+    mkdir -p "$out"
+
+    if [ -d ${modpack}/config ]; then
+      cp -a ${modpack}/config/. "$out/"
+    fi
+
+    install -Dm644 ${pkgs.writeText "voicechat-server.properties" ''
       port=24454
       bind_address=0.0.0.0
       voice_chat_distance=48.0
       max_voice_distance=64.0
       keep_alive=1000
-    '';
-
-    # Add more configuration files like this:
-    #
-    # "some-mod/settings.toml" =
-    #   pkgs.writeText "some-mod-settings.toml" ''
-    #     enabled = true
-    #   '';
-  };
-
-  copyFiles =
-    files:
-    lib.concatStringsSep "\n" (
-      lib.mapAttrsToList (destination: source: ''
-        install -Dm644 \
-          ${source} \
-          "$out/${destination}"
-      '') files
-    );
-
-  removeExcludedMods = lib.concatMapStringsSep "\n" (pattern: ''
-    find "$out" \
-      -maxdepth 1 \
-      -type f \
-      -name ${lib.escapeShellArg pattern} \
-      -print \
-      -delete
-  '') excludedServerMods;
-
-  mergedMods = pkgs.runCommand "integrated-mc-merged-mods" { } ''
-    mkdir -p "$out"
-
-    if [ -d ${modpackExtracted}/mods ]; then
-      cp -r \
-        ${modpackExtracted}/mods/. \
-        "$out/"
-    fi
-
-    ${removeExcludedMods}
-
-    ${copyFiles extraMods}
-
-    if find "$out" \
-      -maxdepth 1 \
-      -type f \
-      -iname '*crashassistant*' |
-      grep -q .
-    then
-      echo "Crash Assistant was not removed from the server mod set" >&2
-      exit 1
-    fi
-  '';
-
-  mergedConfig = pkgs.runCommand "integrated-mc-merged-config" { } ''
-    mkdir -p "$out"
-
-    if [ -d ${modpackExtracted}/config ]; then
-      cp -r \
-        ${modpackExtracted}/config/. \
-        "$out/"
-    fi
-
-    ${copyFiles extraConfigFiles}
+    ''} "$out/voicechat/voicechat-server.properties"
   '';
 in
 {
-  networking.firewall = {
-    allowedTCPPorts = [
-      25565
-    ];
-
-    allowedUDPPorts = [
-      24454
-    ];
-  };
+  # The Minecraft TCP port is handled by nix-minecraft's openFirewall option.
+  # Simple Voice Chat uses UDP separately.
+  networking.firewall.allowedUDPPorts = [ 24454 ];
 
   services.minecraft-servers = {
     enable = true;
     eula = true;
+    openFirewall = true;
 
-    servers.shulker = {
+    servers.shulker-atm = {
       enable = true;
       autoStart = true;
+      restart = "always";
 
-      package = forgeServer;
+      package = server;
 
+      # ATM10 is large; retain the existing memory envelope and Java 21/ZGC
+      # tuning. NeoForge 1.21.1 requires Java 21.
       jvmOpts = builtins.concatStringsSep " " [
         "-Xms8G"
-        "-Xmx12G"
+        "-Xmx14G"
         "-XX:+UseZGC"
+        "-XX:+ZGenerational"
       ];
 
       serverProperties = {
         server-port = 25565;
-
         server-ip = "";
 
         gamemode = "survival";
-        difficulty = "medium";
+        difficulty = "normal";
 
         motd = "§cч§6а§eт§aи§bк§d, §cа§6б§eо§aб§bа";
-
         max-players = 42;
 
         online-mode = false;
@@ -171,27 +108,28 @@ in
         enforce-secure-profile = false;
       };
 
-      operators = {
-        eri = {
-          uuid = "2f240b6b-aef7-35aa-917f-952faeb3f8bc";
-
-          level = 4;
-          bypassesPlayerLimit = true;
-        };
+      operators.eri = {
+        uuid = "2f240b6b-aef7-35aa-917f-952faeb3f8bc";
+        level = 4;
+        bypassesPlayerLimit = true;
       };
 
+      # mods is immutable/declarative and rebuilt from ATM10 + minecraft/mods.
       symlinks = {
-        "mods" = mergedMods;
-
+        mods = mergedMods;
         "server-icon.png" = ../minecraft/server-icon.png;
       };
 
+      # These trees are the pack-controlled server configuration. They are
+      # refreshed when the Nix configuration changes.
+      #
+      # local/ is intentionally NOT managed here: ATM's own update guide treats
+      # it as persistent server state to carry between pack versions.
       files = {
-        "config" = mergedConfig;
-
-        "defaultconfigs" = "${modpackExtracted}/defaultconfigs";
-
-        "kubejs" = "${modpackExtracted}/kubejs";
+        config = mergedConfig;
+        defaultconfigs = "${modpack}/defaultconfigs";
+        kubejs = "${modpack}/kubejs";
+        datapacks = "${modpack}/datapacks";
       };
     };
   };

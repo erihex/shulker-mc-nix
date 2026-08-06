@@ -1,8 +1,6 @@
 {
   inputs = {
-    nixpkgs = {
-      url = "github:NixOS/nixpkgs/nixos-unstable";
-    };
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     nix-minecraft = {
       url = "github:Infinidoge/nix-minecraft";
@@ -22,26 +20,24 @@
       disko,
       ...
     }@inputs:
-
     let
       system = "x86_64-linux";
     in
     {
-      formatter.${system} = nixpkgs.legacyPackages.${system}.alejandra;
+      nixosConfigurations.shulker-mc = nixpkgs.lib.nixosSystem {
+        inherit system;
+        specialArgs = { inherit inputs; };
 
-      nixosConfigurations = {
-        shulker-mc = nixpkgs.lib.nixosSystem {
-          inherit system;
-          specialArgs = { inherit inputs; };
-          modules = [
-            disko.nixosModules.disko
-            nix-minecraft.nixosModules.minecraft-servers
-            {
-              nixpkgs.overlays = [ nix-minecraft.overlays.default ];
-            }
-            ./nix
-          ];
-        };
+        modules = [
+          disko.nixosModules.disko
+          nix-minecraft.nixosModules.minecraft-servers
+
+          {
+            nixpkgs.overlays = [ nix-minecraft.overlay ];
+          }
+
+          ./nix
+        ];
       };
     };
 }

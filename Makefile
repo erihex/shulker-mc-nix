@@ -1,19 +1,21 @@
 HOST ?= shulker-mc
 
-.PHONY: switch test update install clean
+.PHONY: switch test check update install clean
 
 switch:
 	sudo nixos-rebuild switch --flake path:.#$(HOST)
 
 test:
-	sudo nixos-rebuild dry-activate --flake .#$(HOST) --extra-experimental-features "nix-command flakes"
+	sudo nixos-rebuild dry-activate --flake path:.#$(HOST)
+
+check:
+	nix flake check path:.
 
 update:
-	nix --experimental-features "nix-command flakes" flake update
+	nix flake update
 
 install:
-	sudo nix --experimental-features "nix-command flakes" run \
-		github:nix-community/disko/latest -- \
+	sudo nix run github:nix-community/disko/latest -- \
 		--mode destroy,format,mount ./nix/disko.nix
 	sudo nixos-install --flake path:.#$(HOST)
 
