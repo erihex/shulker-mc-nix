@@ -13,16 +13,7 @@ let
     Minecraft / NeoForge
   */
 
-  minecraftVersion = "1.21.1";
-  neoforgeVersion = "21.1.206";
-
-  neoforgePackageName =
-    "neoforge-"
-    + lib.replaceStrings [ "." ] [ "_" ] minecraftVersion
-    + "-"
-    + lib.replaceStrings [ "." ] [ "_" ] neoforgeVersion;
-
-  server = pkgs.neoforgeServers.${neoforgePackageName};
+  server = pkgs.neoforgeServers.neoforge-1_21_1;
 
   /*
     ATM10 server pack
