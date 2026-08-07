@@ -68,6 +68,7 @@ let
     "MouseTweaks-neoforge-mc1.21-2.26.1.jar"
     "overloadedarmorbar-neoforge-1.21-2.jar"
     "rebind_narrator-1.21.1-neoforge-2025.12.23.jar"
+    "CrashAssistant-neoforge-1.20.6-1.21.4-1.11.11.jar"
   ];
 
   replaceBaseModIds = [
