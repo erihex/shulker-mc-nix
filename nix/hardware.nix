@@ -10,13 +10,14 @@
     fsType = "ext4";
   };
 
-  boot.loader.grub = {
-    enable = true;
-    device = "/dev/sda";
+  boot.loader = {
+    grub = {
+      enable = true;
+      devices = [ "/dev/sda" ];
+    };
+
     timeout = 30;
   };
-
-  boot.loader.efi.canTouchEfiVariables = false;
 
   boot.initrd.availableKernelModules = [
     "ata_piix"
@@ -29,6 +30,5 @@
   ];
 
   boot.tmp.cleanOnBoot = true;
-
   zramSwap.enable = true;
 }
