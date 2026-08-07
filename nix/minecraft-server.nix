@@ -13,7 +13,7 @@ let
 
   minecraftRoot = ../minecraft;
 
-  serverPackage = pkgs.neoforgeServers.neoforge-1_21_1.override {
+  serverPackage = pkgs.neoforgeServers.neoforge-1_21_1-21_1_194.override {
     jre_headless = pkgs.jdk21_headless;
   };
 
