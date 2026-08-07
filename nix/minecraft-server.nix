@@ -14,7 +14,7 @@ let
   minecraftRoot = ../minecraft;
 
   serverPackage = pkgs.neoforgeServers.neoforge-1_21_1.override {
-    jre_headless = pkgs.corretto25;
+    jre_headless = pkgs.corretto21;
   };
 
   atmArchive = builtins.path {
