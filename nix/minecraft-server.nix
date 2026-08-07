@@ -9,34 +9,33 @@ let
     inherit lib pkgs;
   };
 
-  /*
-    Minecraft / NeoForge
-  */
+  # Minecraft / NeoForge
 
   server = pkgs.neoforgeServers.neoforge-1_21_1;
 
-  /*
-    ATM10 server pack
-  */
+  # ATM10 server pack
 
   modpackArchive = builtins.path {
     path = ../minecraft/ATM10-ServerFiles-7.3.zip;
     name = "ATM10-ServerFiles-7.3.zip";
   };
 
-  modpack = pkgs.runCommand "atm10-7.3-server-files" {
-    nativeBuildInputs = [
-      pkgs.unzip
-    ];
-  } ''
-    set -euo pipefail
+  modpack =
+    pkgs.runCommand "atm10-7.3-server-files"
+      {
+        nativeBuildInputs = [
+          pkgs.unzip
+        ];
+      }
+      ''
+        set -euo pipefail
 
-    mkdir -p "$out"
+        mkdir -p "$out"
 
-    unzip -q \
-      ${modpackArchive} \
-      -d "$out"
-  '';
+        unzip -q \
+          ${modpackArchive} \
+          -d "$out"
+      '';
 
   /*
     Repository-side Minecraft directories.
@@ -56,24 +55,17 @@ let
 
   minecraftEntries = builtins.readDir minecraftRoot;
 
-  minecraftDirectories =
-    lib.filterAttrs (
-      _name: type:
-      type == "directory"
-    ) minecraftEntries;
+  minecraftDirectories = lib.filterAttrs (_name: type: type == "directory") minecraftEntries;
 
-  localTrees =
-    lib.mapAttrs (
-      name: _type:
-      builtins.path {
-        path = minecraftRoot + "/${name}";
-        name = "minecraft-${name}";
-      }
-    ) minecraftDirectories;
+  localTrees = lib.mapAttrs (
+    name: _type:
+    builtins.path {
+      path = minecraftRoot + "/${name}";
+      name = "minecraft-${name}";
+    }
+  ) minecraftDirectories;
 
-  /*
-    Generated configuration overlays.
-  */
+  # Generated configuration overlays.
 
   voicechatConfig = pkgs.writeText "voicechat-server.properties" ''
     port=24454
@@ -133,26 +125,20 @@ let
     tacz = { };
   };
 
-  /*
-    Build every tree through the same generic utility.
-  */
+  # Build every tree through the same generic utility.
 
-  serverTrees =
-    lib.mapAttrs (
-      name: spec:
-      mcLib.mkTree {
-        name = "atm10-${name}";
+  serverTrees = lib.mapAttrs (
+    name: spec:
+    mcLib.mkTree {
+      name = "atm10-${name}";
 
-        base = "${modpack}/${name}";
+      base = "${modpack}/${name}";
 
-        overlays =
-          lib.optional
-            (builtins.hasAttr name localTrees)
-            localTrees.${name};
+      overlays = lib.optional (builtins.hasAttr name localTrees) localTrees.${name};
 
-        extraFiles = spec.extraFiles or { };
-      }
-    ) treeSpecs;
+      extraFiles = spec.extraFiles or { };
+    }
+  ) treeSpecs;
 in
 {
   /*
@@ -180,9 +166,7 @@ in
 
       restart = "always";
 
-      /*
-        NeoForge package from nix-minecraft.
-      */
+      # NeoForge package from nix-minecraft.
 
       package = server;
 
@@ -198,12 +182,10 @@ in
         "-Xmx14G"
 
         "-XX:+UseZGC"
-        "-XX:+ZGenerational"
+        "-XX:+UseCompactObjectHeaders"
       ];
 
-      /*
-        server.properties
-      */
+      # server.properties
 
       serverProperties = {
         server-port = 25565;
@@ -227,9 +209,7 @@ in
         enforce-secure-profile = false;
       };
 
-      /*
-        Operators
-      */
+      # Operators
 
       operators.eri = {
         uuid = "2f240b6b-aef7-35aa-917f-952faeb3f8bc";
@@ -260,11 +240,9 @@ in
           <server root>/mods/tacz/
       */
 
-      symlinks =
-        serverTrees
-        // {
-          "server-icon.png" = ../minecraft/server-icon.png;
-        };
+      symlinks = serverTrees // {
+        "server-icon.png" = ../minecraft/server-icon.png;
+      };
 
       /*
         local/ is intentionally absent.

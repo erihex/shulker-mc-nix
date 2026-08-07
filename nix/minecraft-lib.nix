@@ -15,18 +15,16 @@ let
       mkdir -p "$out"
 
       # Base tree, usually from the extracted ATM10 server pack.
-      ${
-        lib.optionalString (base != null) ''
-          if [ -d ${base} ]; then
-            cp -a ${base}/. "$out/"
+      ${lib.optionalString (base != null) ''
+        if [ -d ${base} ]; then
+          cp -a ${base}/. "$out/"
 
-            # Files copied from another Nix store path are normally read-only.
-            # Make the build output writable so subsequent overlays can replace
-            # files with the same names.
-            chmod -R u+w "$out"
-          fi
-        ''
-      }
+          # Files copied from another Nix store path are normally read-only.
+          # Make the build output writable so subsequent overlays can replace
+          # files with the same names.
+          chmod -R u+w "$out"
+        fi
+      ''}
 
       # Overlay repository-controlled trees.
       #
@@ -41,14 +39,11 @@ let
       # Generated/explicit files are applied last and therefore have the
       # highest precedence.
       ${lib.concatStringsSep "\n" (
-        lib.mapAttrsToList (
-          destination: source:
-          ''
-            install -Dm644 \
-              ${source} \
-              "$out/${destination}"
-          ''
-        ) extraFiles
+        lib.mapAttrsToList (destination: source: ''
+          install -Dm644 \
+            ${source} \
+            "$out/${destination}"
+        '') extraFiles
       )}
     '';
 in
