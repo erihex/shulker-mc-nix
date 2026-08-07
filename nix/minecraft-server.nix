@@ -9,38 +9,30 @@ let
     inherit lib pkgs;
   };
 
-  /*
-    ──────────────────────────────────────────────────────────────────────────
-    Pack / loader
-    ──────────────────────────────────────────────────────────────────────────
-  */
+  # Pack / loader
 
   minecraftRoot = ../minecraft;
 
-  # Latest NeoForge for Minecraft 1.21.1 provided by the pinned nix-minecraft
-  # flake. This currently resolves to 21.1.248 in this repository.
-  serverPackage =
-    pkgs.neoforgeServers.neoforge-1_21_1;
+  serverPackage = pkgs.neoforgeServers.neoforge-1_21_1;
 
   atmArchive = builtins.path {
     path = minecraftRoot + "/ATM10-ServerFiles-7.3.zip";
     name = "ATM10-ServerFiles-7.3.zip";
   };
 
-  atmServerPack = pkgs.runCommand "atm10-7.3-server-pack" {
-    nativeBuildInputs = [ pkgs.unzip ];
-  } ''
-    set -euo pipefail
+  atmServerPack =
+    pkgs.runCommand "atm10-7.3-server-pack"
+      {
+        nativeBuildInputs = [ pkgs.unzip ];
+      }
+      ''
+        set -euo pipefail
 
-    mkdir -p "$out"
-    unzip -q ${atmArchive} -d "$out"
-  '';
+        mkdir -p "$out"
+        unzip -q ${atmArchive} -d "$out"
+      '';
 
-  /*
-    ──────────────────────────────────────────────────────────────────────────
-    Repository sources
-    ──────────────────────────────────────────────────────────────────────────
-  */
+  # Repository sources
 
   repoDir =
     name:
@@ -53,44 +45,31 @@ let
   extraTacz = repoDir "tacz";
 
   /*
-    ──────────────────────────────────────────────────────────────────────────
     Mod policy
-    ──────────────────────────────────────────────────────────────────────────
-
-    Keep these two sets small and explicit.
 
     removeBaseJars:
-      Exact JARs to remove from ATM10 before any duplicate-modId validation.
+      Exact upstream JARs removed before modId validation.
 
     replaceBaseModIds:
-      modIds for which minecraft/mods intentionally replaces ATM10's JAR.
-
-    Everything else is fail-closed:
-      an extra mod already present in ATM10 causes the Nix build to fail.
+      Extra mods explicitly allowed to replace ATM-provided mods.
   */
 
   removeBaseJars = [
-    # ATM10 7.3 contains two CC:Tweaked versions. Keep 1.120.0 and remove the
-    # obsolete 1.113.1 before validating the base mod set.
+    # ATM10 7.3 contains two CC:Tweaked versions.
+    # Keep 1.120.0 and remove the obsolete 1.113.1.
     "cc-tweaked-1.21.1-forge-1.113.1.jar"
   ];
 
   replaceBaseModIds = [
-    # Examples, only add entries intentionally:
-    #
-    # "create_dragons_plus"
-    # "carryon"
+    # ATM10 ships CreateDragonsPlus 1.11.3; repository provides 1.11.4.
     "create_dragons_plus"
   ];
 
-  /*
-    ──────────────────────────────────────────────────────────────────────────
-    Derived server trees
-    ──────────────────────────────────────────────────────────────────────────
-  */
+  # Derived trees
 
   mods = mc.mkModSet {
     name = "atm10-mods";
+
     baseMods = "${atmServerPack}/mods";
     extraMods = extraMods;
 
@@ -116,8 +95,7 @@ let
     ];
 
     files = {
-      "voicechat/voicechat-server.properties" =
-        voicechatConfig;
+      "voicechat/voicechat-server.properties" = voicechatConfig;
     };
   };
 
@@ -125,53 +103,46 @@ let
     name = "atm10-tacz";
 
     sources = [
-      # ATM10 currently does not need to ship tacz/, but keeping the base
-      # source here makes the layout forward-compatible.
       "${atmServerPack}/tacz"
       extraTacz
     ];
   };
 
   /*
-    Trees used unchanged from the official server pack.
+    nix-minecraft content model
+
+    symlinks:
+      immutable content which should remain read-only.
+
+    files:
+      content copied into the server directory and therefore writable at
+      runtime. Config/KubeJS/TaCZ belong here because mods may update them.
   */
-  atmTrees = {
-    defaultconfigs = "${atmServerPack}/defaultconfigs";
-    kubejs = "${atmServerPack}/kubejs";
-    datapacks = "${atmServerPack}/datapacks";
+
+  immutableContent = {
+    inherit mods;
+
+    "server-icon.png" = ../minecraft/server-icon.png;
   };
 
-  managedTrees =
-    atmTrees
-    // {
-      inherit mods config tacz;
-    };
+  writableContent = {
+    inherit config tacz;
+
+    defaultconfigs = "${atmServerPack}/defaultconfigs";
+
+    kubejs = "${atmServerPack}/kubejs";
+
+    datapacks = "${atmServerPack}/datapacks";
+  };
 in
 {
-  /*
-    ──────────────────────────────────────────────────────────────────────────
-    Networking
-    ──────────────────────────────────────────────────────────────────────────
-  */
-
-  # TCP 25565 is opened by nix-minecraft via openFirewall.
-  # Simple Voice Chat needs UDP separately.
   networking.firewall.allowedUDPPorts = [
     24454
   ];
 
-  /*
-    ──────────────────────────────────────────────────────────────────────────
-    Minecraft
-    ──────────────────────────────────────────────────────────────────────────
-  */
-
   services.minecraft-servers = {
     enable = true;
-
-    # nix-minecraft manages eula.txt.
     eula = true;
-
     openFirewall = true;
 
     servers.shulker-atm = {
@@ -181,17 +152,11 @@ in
 
       package = serverPackage;
 
-      /*
-        Keep JVM tuning intentionally conservative while stabilising the pack.
-      */
       jvmOpts = [
         "-Xms8G"
         "-Xmx14G"
       ];
 
-      /*
-        nix-minecraft generates server.properties from this set.
-      */
       serverProperties = {
         server-port = 25565;
         server-ip = "";
@@ -199,8 +164,7 @@ in
         gamemode = "survival";
         difficulty = "normal";
 
-        motd =
-          "§cч§6а§eт§aи§bк§d, §cа§6б§eо§aб§bа";
+        motd = "§cч§6а§eт§aи§bк§d, §cа§6б§eо§aб§bа";
 
         max-players = 42;
 
@@ -211,28 +175,20 @@ in
       };
 
       operators.eri = {
-        uuid =
-          "2f240b6b-aef7-35aa-917f-952faeb3f8bc";
+        uuid = "2f240b6b-aef7-35aa-917f-952faeb3f8bc";
 
         level = 4;
         bypassesPlayerLimit = true;
       };
 
-      /*
-        Declarative immutable server content.
+      # Immutable store-backed content.
+      symlinks = immutableContent;
 
-        nix-minecraft itself owns eula.txt and server.properties, so neither is
-        duplicated here.
-      */
-      symlinks =
-        managedTrees
-        // {
-          "server-icon.png" =
-            ../minecraft/server-icon.png;
-        };
+      # Writable copies managed by nix-minecraft.
+      files = writableContent;
 
       /*
-        Runtime state remains writable and unmanaged:
+        Runtime state intentionally remains unmanaged:
           local/
           world/
           logs/
