@@ -22,9 +22,7 @@ let
     + "-"
     + lib.replaceStrings [ "." ] [ "_" ] neoforgeVersion;
 
-  server = pkgs.neoforgeServers.${neoforgePackageName}.override {
-    jre = pkgs.corretto21;
-  };
+  server = pkgs.neoforgeServers.${neoforgePackageName};
 
   /*
     ATM10 server pack
