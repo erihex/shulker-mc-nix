@@ -163,7 +163,7 @@ in
 
       jvmOpts = [
         "-Xms8G"
-        "-Xmx14G"
+        "-Xmx28G"
         "-XX:+UseZGC"
         # "-XX:+ZGenerational" # Java 21 only
         "-XX:+UseCompactObjectHeaders" # Java 25 only

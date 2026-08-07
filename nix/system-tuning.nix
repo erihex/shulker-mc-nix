@@ -13,9 +13,6 @@
   powerManagement.cpuFreqGovernor = "performance";
   boot.kernelParams = [
     "mitigations=off"
-
-    "nvme_core.default_ps_max_latency_us=0"
-
     "log_buf_len=20M"
   ];
 
@@ -63,10 +60,6 @@
     "net.ipv4.tcp_fin_timeout" = 15;
   };
 
-  services.udev.extraRules = ''
-    ACTION=="add|change", KERNEL=="nvme[0-n]*", ATTR{queue/scheduler}="none"
-  '';
-
   security.pam.loginLimits = [
     {
       domain = "*";
@@ -111,9 +104,12 @@
     allowUnfree = true;
   };
 
-  # boot.initrd.systemd.enable = true;
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
+  boot.loader.grub = {
+    enable = true;
+    device = "/dev/sda";
+  };
+
+  boot.loader.efi.canTouchEfiVariables = false;
 
   programs.nix-ld.enable = true;
   services.envfs.enable = true;

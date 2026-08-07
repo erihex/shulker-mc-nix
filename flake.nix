@@ -7,6 +7,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    microvm = {
+      url = "github:microvm-nix/microvm.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     disko = {
       url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -15,29 +20,33 @@
 
   outputs =
     {
+      self,
       nixpkgs,
       nix-minecraft,
       disko,
+      microvm,
       ...
     }@inputs:
     let
       system = "x86_64-linux";
     in
     {
-      nixosConfigurations.shulker-mc = nixpkgs.lib.nixosSystem {
-        inherit system;
-        specialArgs = { inherit inputs; };
+      nixosConfigurations = {
+        shulker-mc = nixpkgs.lib.nixosSystem {
+          inherit system;
+          specialArgs = { inherit inputs; };
 
-        modules = [
-          disko.nixosModules.disko
-          nix-minecraft.nixosModules.minecraft-servers
+          modules = [
+            disko.nixosModules.disko
+            nix-minecraft.nixosModules.minecraft-servers
 
-          {
-            nixpkgs.overlays = [ nix-minecraft.overlay ];
-          }
+            {
+              nixpkgs.overlays = [ nix-minecraft.overlay ];
+            }
 
-          ./nix
-        ];
+            ./nix
+          ];
+        };
       };
     };
 }

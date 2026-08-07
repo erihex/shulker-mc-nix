@@ -1,54 +1,32 @@
 {
   disko.devices = {
-    disk = {
-      main = {
-        type = "disk";
-        device = "/dev/vda";
-        content = {
-          type = "gpt";
-          partitions = {
-            ESP = {
-              priority = 1;
-              name = "ESP";
-              size = "1024M";
-              type = "EF00";
-              content = {
-                type = "filesystem";
-                format = "vfat";
-                mountpoint = "/boot";
-                mountOptions = [
-                  "defaults"
-                  "umask=0077"
-                ];
-              };
-            };
+    disk.main = {
+      type = "disk";
+      device = "/dev/sda";
 
-            nix = {
-              priority = 2;
-              name = "nix";
-              size = "100G";
-              content = {
-                type = "filesystem";
-                format = "xfs";
-                mountpoint = "/nix";
-                mountOptions = [
-                  "noatime"
-                ];
-              };
-            };
+      content = {
+        type = "gpt";
 
-            root = {
-              priority = 3;
-              name = "root";
-              size = "100%";
-              content = {
-                type = "filesystem";
-                format = "xfs";
-                mountpoint = "/";
-                mountOptions = [
-                  "noatime"
-                ];
-              };
+        partitions = {
+          bios = {
+            priority = 1;
+            name = "bios";
+            size = "4M";
+            type = "EF02";
+          };
+
+          root = {
+            priority = 3;
+            name = "root";
+            size = "100%";
+
+            content = {
+              type = "filesystem";
+              format = "xfs";
+              mountpoint = "/";
+              mountOptions = [
+                "noatime"
+              ];
             };
           };
         };

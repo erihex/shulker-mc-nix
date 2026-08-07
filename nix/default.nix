@@ -7,5 +7,6 @@
     ./backup.nix
     ./ssh.nix
     ./disko.nix
+    ./network.nix
   ];
 }
