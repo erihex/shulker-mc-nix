@@ -166,7 +166,8 @@ in
         "-Xms8G"
         "-Xmx14G"
         "-XX:+UseZGC"
-        "-XX:+UseCompactObjectHeaders"
+        "-XX:+ZGenerational" # Java 21 only
+        # "-XX:+UseCompactObjectHeaders" # Java 25 only
       ];
 
       serverProperties = {
