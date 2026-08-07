@@ -19,7 +19,6 @@
       nixpkgs,
       nix-minecraft,
       disko,
-      microvm,
       ...
     }@inputs:
     let
