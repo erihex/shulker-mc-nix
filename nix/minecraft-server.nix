@@ -28,7 +28,10 @@ let
     ATM10 server pack
   */
 
-  modpackArchive = ../minecraft/ATM10-ServerFiles-7.3.zip;
+  modpackArchive = builtins.path {
+    path = ../minecraft/ATM10-ServerFiles-7.3.zip;
+    name = "ATM10-ServerFiles-7.3.zip";
+  };
 
   modpack = pkgs.runCommand "atm10-7.3-server-files" {
     nativeBuildInputs = [
@@ -40,7 +43,7 @@ let
     mkdir -p "$out"
 
     unzip -q \
-      ${lib.escapeShellArg (toString modpackArchive)} \
+      ${modpackArchive} \
       -d "$out"
   '';
 
