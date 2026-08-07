@@ -159,7 +159,7 @@ in
     servers.shulker-atm = {
       enable = true;
       autoStart = true;
-      restart = "no";
+      restart = "always";
 
       package = serverPackage;
 
