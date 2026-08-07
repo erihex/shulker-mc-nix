@@ -155,6 +155,8 @@ in
       jvmOpts = [
         "-Xms8G"
         "-Xmx14G"
+        "-XX:+UseZGC"
+        "-XX:+UseCompactObjectHeaders"
       ];
 
       serverProperties = {
