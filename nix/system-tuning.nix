@@ -6,6 +6,8 @@
 }:
 
 {
+  system.stateVersion = "26.11";
+
   networking.hostName = "shulker-mc";
 
   powerManagement.cpuFreqGovernor = "performance";

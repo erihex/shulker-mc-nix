@@ -5,10 +5,8 @@
 }:
 
 let
-  # ATM10 7.3 server pack from minecraft/ATM10-ServerFiles-7.3.zip.
-  # The archive shown for this deployment uses Minecraft 1.21.1 and
-  # NeoForge 21.1.206, so keep the loader pinned instead of following
-  # nix-minecraft's moving "latest" alias.
+  mcLib = import ./minecraft-lib.nix { inherit lib pkgs; };
+
   minecraftVersion = "1.21.1";
   neoforgeVersion = "21.1.206";
 
@@ -21,7 +19,6 @@ let
   server = pkgs.neoforgeServers.${neoforgePackageName};
 
   modpackArchive = ../minecraft/ATM10-ServerFiles-7.3.zip;
-  extraModsDir = ../minecraft/mods;
 
   modpack =
     pkgs.runCommand "atm10-7.3-server-files"
@@ -33,42 +30,53 @@ let
         unzip -q ${modpackArchive} -d "$out"
       '';
 
-  # ATM10's own mods plus every additional JAR committed under minecraft/mods/.
-  # There is deliberately no exclusion list here: the old exclusions belonged
-  # to the previous Integrated MC deployment, not to ATM10.
-  mergedMods = pkgs.runCommand "atm10-7.3-merged-mods" { } ''
-    mkdir -p "$out"
+  # Repository-controlled directories below minecraft/ are discovered
+  # automatically. At the moment this picks up mods/ and tacz/, but adding
+  # another directory later does not require adding every file by hand.
+  localMinecraftDirs = lib.filterAttrs (_: type: type == "directory") (builtins.readDir ../minecraft);
 
-    if [ -d ${modpack}/mods ]; then
-      cp -a ${modpack}/mods/. "$out/"
-    fi
+  localTrees = lib.mapAttrs (name: _: ../minecraft + "/${name}") localMinecraftDirs;
 
-    if [ -d ${extraModsDir} ]; then
-      cp -a ${extraModsDir}/. "$out/"
-    fi
+  voicechatConfig = pkgs.writeText "voicechat-server.properties" ''
+    port=24454
+    bind_address=0.0.0.0
+    voice_chat_distance=48.0
+    max_voice_distance=64.0
+    keep_alive=1000
   '';
 
-  # ATM10 configuration is copied from the server pack and then amended with
-  # settings for locally-added server mods.
-  mergedConfig = pkgs.runCommand "atm10-7.3-merged-config" { } ''
-    mkdir -p "$out"
+  # One declarative table describes all immutable server-root trees.
+  # There is no special mergedMods/mergedConfig implementation.
+  #
+  # ATM-owned trees use the corresponding directory from the extracted pack as
+  # their base. If a same-named repository directory exists (mods/, tacz/, ...)
+  # it is overlaid recursively and automatically.
+  treeSpecs = {
+    mods = { };
+    config = {
+      extraFiles = {
+        "voicechat/voicechat-server.properties" = voicechatConfig;
+      };
+    };
+    defaultconfigs = { };
+    kubejs = { };
+    datapacks = { };
 
-    if [ -d ${modpack}/config ]; then
-      cp -a ${modpack}/config/. "$out/"
-    fi
+    # TaCZ gun packs belong in <server-root>/tacz/, not mods/.
+    tacz = { };
+  };
 
-    install -Dm644 ${pkgs.writeText "voicechat-server.properties" ''
-      port=24454
-      bind_address=0.0.0.0
-      voice_chat_distance=48.0
-      max_voice_distance=64.0
-      keep_alive=1000
-    ''} "$out/voicechat/voicechat-server.properties"
-  '';
+  serverTrees = lib.mapAttrs (
+    name: spec:
+    mcLib.mkTree {
+      name = "atm10-${name}";
+      base = "${modpack}/${name}";
+      overlays = lib.optional (builtins.hasAttr name localTrees) localTrees.${name};
+      extraFiles = spec.extraFiles or { };
+    }
+  ) treeSpecs;
 in
 {
-  # The Minecraft TCP port is handled by nix-minecraft's openFirewall option.
-  # Simple Voice Chat uses UDP separately.
   networking.firewall.allowedUDPPorts = [ 24454 ];
 
   services.minecraft-servers = {
@@ -83,8 +91,6 @@ in
 
       package = server;
 
-      # ATM10 is large; retain the existing memory envelope and Java 21/ZGC
-      # tuning. NeoForge 1.21.1 requires Java 21.
       jvmOpts = builtins.concatStringsSep " " [
         "-Xms8G"
         "-Xmx14G"
@@ -114,23 +120,14 @@ in
         bypassesPlayerLimit = true;
       };
 
-      # mods is immutable/declarative and rebuilt from ATM10 + minecraft/mods.
-      symlinks = {
-        mods = mergedMods;
+      # All immutable directory trees are wired into the server root from the
+      # single data-driven serverTrees attrset.
+      symlinks = serverTrees // {
         "server-icon.png" = ../minecraft/server-icon.png;
       };
 
-      # These trees are the pack-controlled server configuration. They are
-      # refreshed when the Nix configuration changes.
-      #
-      # local/ is intentionally NOT managed here: ATM's own update guide treats
-      # it as persistent server state to carry between pack versions.
-      files = {
-        config = mergedConfig;
-        defaultconfigs = "${modpack}/defaultconfigs";
-        kubejs = "${modpack}/kubejs";
-        datapacks = "${modpack}/datapacks";
-      };
+      # local/ remains writable persistent state and is intentionally not
+      # managed by Nix.
     };
   };
 }
