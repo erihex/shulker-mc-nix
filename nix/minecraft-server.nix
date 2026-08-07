@@ -57,6 +57,8 @@ let
   */
 
   removeBaseJars = [
+    "connectivity-1.21.1-7.6.jar"
+
     # Broken duplicate in ATM10 server pack.
     "cc-tweaked-1.21.1-forge-1.113.1.jar"
 
