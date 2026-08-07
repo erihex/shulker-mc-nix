@@ -18,24 +18,6 @@
 
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
-  boot.initrd.availableKernelModules = [
-    "virtio"
-    "virtio_pci"
-    "virtio_ring"
-    "virtio_blk"
-    "virtio_scsi"
-    "xfs"
-    "ahci"
-    "sd_mod"
-    "sr_mod"
-  ];
-
-  boot.initrd.kernelModules = [
-    "virtio_pci"
-    "virtio_blk"
-    "xfs"
-  ];
-
   boot.kernelModules = [ "tcp_bbr" ];
   boot.kernel.sysctl = {
     "vm.swappiness" = 10;
@@ -103,13 +85,6 @@
   nixpkgs.config = {
     allowUnfree = true;
   };
-
-  boot.loader.grub = {
-    enable = true;
-    device = "/dev/sda";
-  };
-
-  boot.loader.efi.canTouchEfiVariables = false;
 
   programs.nix-ld.enable = true;
   services.envfs.enable = true;

@@ -6,7 +6,7 @@
     ./system-tuning.nix
     ./backup.nix
     ./ssh.nix
-    ./disko.nix
+    ./hardware.nix
     ./network.nix
   ];
 }

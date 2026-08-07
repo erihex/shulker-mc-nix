@@ -7,15 +7,10 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    microvm = {
-      url = "github:microvm-nix/microvm.nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    disko = {
-      url = "github:nix-community/disko";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    # disko = {
+    #   url = "github:nix-community/disko";
+    #   inputs.nixpkgs.follows = "nixpkgs";
+    # };
   };
 
   outputs =
@@ -37,7 +32,7 @@
           specialArgs = { inherit inputs; };
 
           modules = [
-            disko.nixosModules.disko
+            # disko.nixosModules.disko
             nix-minecraft.nixosModules.minecraft-servers
 
             {

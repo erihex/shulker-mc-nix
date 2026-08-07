@@ -1,69 +1,50 @@
 { ... }:
 
 {
-  networking.useDHCP = false;
+  networking = {
+    useDHCP = false;
+    useNetworkd = true;
+    usePredictableInterfaceNames = true;
+
+    hostName = "shulker";
+    domain = "fyi";
+  };
 
   systemd.network = {
     enable = true;
 
-    links = {
-      "10-eth0" = {
-        matchConfig.MACAddress = "bc:24:11:f0:32:57";
-        linkConfig.Name = "eth0";
-      };
-
-      "10-eth1" = {
-        matchConfig.MACAddress = "bc:24:11:41:7b:1f";
-        linkConfig.Name = "eth1";
-      };
+    links."10-eth0" = {
+      matchConfig.MACAddress = "bc:24:11:6f:87:16";
+      linkConfig.Name = "eth0";
     };
 
-    networks = {
-      "20-eth0" = {
-        matchConfig.MACAddress = "bc:24:11:f0:32:57";
+    networks."20-eth0" = {
+      matchConfig.MACAddress = "bc:24:11:6f:87:16";
 
-        address = [
-          "82.22.77.40/24"
+      address = [
+        "82.22.77.40/24"
+        "2a10:4646:2ec:0:be24:11ff:fe6f:8716/64"
+      ];
+
+      routes = [
+        {
+          Destination = "0.0.0.0/0";
+          Gateway = "82.22.77.1";
+          GatewayOnLink = true;
+        }
+        {
+          Destination = "::/0";
+          Gateway = "fe80::21c:73ff:fec7:c557";
+        }
+      ];
+
+      networkConfig = {
+        DNS = [
+          "2620:fe::10"
+          "9.9.9.10"
         ];
 
-        routes = [
-          {
-            Destination = "0.0.0.0/0";
-            Gateway = "82.22.77.1";
-          }
-        ];
-
-        networkConfig = {
-          DNS = [
-            "1.1.1.1"
-          ];
-
-          IPv6AcceptRA = false;
-        };
-      };
-
-      "20-eth1" = {
-        matchConfig.MACAddress = "bc:24:11:41:7b:1f";
-
-        address = [
-          "2a10:4646:2ec::1b5/48"
-        ];
-
-        routes = [
-          {
-            Destination = "::/0";
-            Gateway = "2a10:4646:2e0::1";
-            GatewayOnLink = true;
-          }
-        ];
-
-        networkConfig = {
-          DNS = [
-            "1.1.1.1"
-          ];
-
-          IPv6AcceptRA = false;
-        };
+        IPv6AcceptRA = false;
       };
     };
   };
