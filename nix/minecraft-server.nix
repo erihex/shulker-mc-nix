@@ -168,6 +168,10 @@ in
         "-XX:+UseZGC"
         "-XX:+ZGenerational" # Java 21 only
         # "-XX:+UseCompactObjectHeaders" # Java 25 only
+        
+        "-XX:ErrorFile=/srv/minecraft/shulker-atm/hs_err_pid%p.log"
+        "-XX:+HeapDumpOnOutOfMemoryError"
+        "-XX:HeapDumpPath=/srv/minecraft/shulker-atm"
       ];
 
       serverProperties = {
