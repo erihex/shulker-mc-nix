@@ -13,7 +13,9 @@ let
 
   minecraftRoot = ../minecraft;
 
-  serverPackage = pkgs.neoforgeServers.neoforge-1_21_1;
+  serverPackage = pkgs.neoforgeServers.neoforge-1_21_1.override {
+    jre_headless = pkgs.jdk21_headless;
+  };
 
   atmArchive = builtins.path {
     path = minecraftRoot + "/ATM10-ServerFiles-7.3.zip";
