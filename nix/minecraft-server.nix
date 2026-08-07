@@ -55,9 +55,17 @@ let
   */
 
   removeBaseJars = [
-    # ATM10 7.3 contains two CC:Tweaked versions.
-    # Keep 1.120.0 and remove the obsolete 1.113.1.
+    # Broken duplicate in ATM10 server pack.
     "cc-tweaked-1.21.1-forge-1.113.1.jar"
+
+    # Client-side only / irrelevant on dedicated server.
+    "Controlling-neoforge-1.21.1-19.0.5.jar"
+    "ImmediatelyFast-NeoForge-1.6.11+1.21.1.jar"
+    "IrisSearch-1.5.1-neoforge.jar"
+    "KeybindsPurger-1.4.0-neoforge-1.21.1.jar"
+    "MouseTweaks-neoforge-mc1.21-2.26.1.jar"
+    "overloadedarmorbar-neoforge-1.21-2.jar"
+    "rebind_narrator-1.21.1-neoforge-2025.12.23.jar"
   ];
 
   replaceBaseModIds = [
