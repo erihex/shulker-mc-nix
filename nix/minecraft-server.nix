@@ -13,7 +13,9 @@ let
 
   minecraftRoot = ../minecraft;
 
-  serverPackage = pkgs.neoforgeServers.neoforge-1_21_1;
+  serverPackage = pkgs.neoforgeServers.neoforge-1_21_1.override {
+    jre_headless = pkgs.corretto25;
+  };
 
   atmArchive = builtins.path {
     path = minecraftRoot + "/ATM10-ServerFiles-7.3.zip";
@@ -163,7 +165,7 @@ in
 
       jvmOpts = [
         "-Xms8G"
-        "-Xmx28G"
+        "-Xmx29G"
         "-XX:+UseZGC"
         # "-XX:+ZGenerational" # Java 21 only
         "-XX:+UseCompactObjectHeaders" # Java 25 only
