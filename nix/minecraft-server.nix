@@ -13,9 +13,7 @@ let
 
   minecraftRoot = ../minecraft;
 
-  serverPackage = pkgs.neoforgeServers.neoforge-1_21_1.override {
-    jre_headless = pkgs.jdk21_headless;
-  };
+  serverPackage = pkgs.neoforgeServers.neoforge-1_21_1;
 
   atmArchive = builtins.path {
     path = minecraftRoot + "/ATM10-ServerFiles-7.3.zip";
@@ -167,12 +165,8 @@ in
         "-Xms8G"
         "-Xmx14G"
         "-XX:+UseZGC"
-        "-XX:+ZGenerational" # Java 21 only
-        # "-XX:+UseCompactObjectHeaders" # Java 25 only
-
-        "-XX:ErrorFile=/srv/minecraft/shulker-atm/hs_err_pid%p.log"
-        "-XX:+HeapDumpOnOutOfMemoryError"
-        "-XX:HeapDumpPath=/srv/minecraft/shulker-atm"
+        # "-XX:+ZGenerational" # Java 21 only
+        "-XX:+UseCompactObjectHeaders" # Java 25 only
       ];
 
       serverProperties = {
