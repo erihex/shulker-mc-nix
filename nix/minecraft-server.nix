@@ -13,7 +13,7 @@ let
 
   minecraftRoot = ../minecraft;
 
-  serverPackage = pkgs.neoforgeServers.neoforge-1_21_1-21_1_194.override {
+  serverPackage = pkgs.neoforgeServers.neoforge-1_21_1.override {
     jre_headless = pkgs.jdk21_headless;
   };
 
@@ -168,7 +168,7 @@ in
         "-XX:+UseZGC"
         "-XX:+ZGenerational" # Java 21 only
         # "-XX:+UseCompactObjectHeaders" # Java 25 only
-        
+
         "-XX:ErrorFile=/srv/minecraft/shulker-atm/hs_err_pid%p.log"
         "-XX:+HeapDumpOnOutOfMemoryError"
         "-XX:HeapDumpPath=/srv/minecraft/shulker-atm"
