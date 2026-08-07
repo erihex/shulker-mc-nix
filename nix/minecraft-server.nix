@@ -5,61 +5,101 @@
 }:
 
 let
-  mcLib = import ./minecraft-lib.nix {
+  mc = import ./minecraft-lib.nix {
     inherit lib pkgs;
   };
 
-  # Minecraft / NeoForge
-  server = pkgs.neoforgeServers.neoforge-1_21_1;
+  /*
+    ──────────────────────────────────────────────────────────────────────────
+    Pack / loader
+    ──────────────────────────────────────────────────────────────────────────
+  */
 
-  # ATM10 server pack
-  modpackArchive = builtins.path {
-    path = ../minecraft/ATM10-ServerFiles-7.3.zip;
+  minecraftRoot = ../minecraft;
+
+  # Latest NeoForge for Minecraft 1.21.1 provided by the pinned nix-minecraft
+  # flake. This currently resolves to 21.1.248 in this repository.
+  serverPackage =
+    pkgs.neoforgeServers.neoforge-1_21_1;
+
+  atmArchive = builtins.path {
+    path = minecraftRoot + "/ATM10-ServerFiles-7.3.zip";
     name = "ATM10-ServerFiles-7.3.zip";
   };
 
-  modpack =
-    pkgs.runCommand "atm10-7.3-server-files"
-      {
-        nativeBuildInputs = [
-          pkgs.unzip
-        ];
-      }
-      ''
-        set -euo pipefail
+  atmServerPack = pkgs.runCommand "atm10-7.3-server-pack" {
+    nativeBuildInputs = [ pkgs.unzip ];
+  } ''
+    set -euo pipefail
 
-        mkdir -p "$out"
-
-        unzip -q \
-          ${modpackArchive} \
-          -d "$out"
-      '';
+    mkdir -p "$out"
+    unzip -q ${atmArchive} -d "$out"
+  '';
 
   /*
-    Repository-side Minecraft directories.
-
-    minecraft/
-      mods/
-      tacz/
-      ...
-
-    We inspect only directory names here. We do NOT enumerate or hardcode
-    individual files.
-
-    builtins.path makes every selected directory a proper Nix source tree.
+    ──────────────────────────────────────────────────────────────────────────
+    Repository sources
+    ──────────────────────────────────────────────────────────────────────────
   */
-  minecraftRoot = ../minecraft;
-  minecraftEntries = builtins.readDir minecraftRoot;
-  minecraftDirectories = lib.filterAttrs (_name: type: type == "directory") minecraftEntries;
-  localTrees = lib.mapAttrs (
-    name: _type:
+
+  repoDir =
+    name:
     builtins.path {
       path = minecraftRoot + "/${name}";
       name = "minecraft-${name}";
-    }
-  ) minecraftDirectories;
+    };
 
-  # Generated configuration overlays.
+  extraMods = repoDir "mods";
+  extraTacz = repoDir "tacz";
+
+  /*
+    ──────────────────────────────────────────────────────────────────────────
+    Mod policy
+    ──────────────────────────────────────────────────────────────────────────
+
+    Keep these two sets small and explicit.
+
+    removeBaseJars:
+      Exact JARs to remove from ATM10 before any duplicate-modId validation.
+
+    replaceBaseModIds:
+      modIds for which minecraft/mods intentionally replaces ATM10's JAR.
+
+    Everything else is fail-closed:
+      an extra mod already present in ATM10 causes the Nix build to fail.
+  */
+
+  removeBaseJars = [
+    # ATM10 7.3 contains two CC:Tweaked versions. Keep 1.120.0 and remove the
+    # obsolete 1.113.1 before validating the base mod set.
+    "cc-tweaked-1.21.1-forge-1.113.1.jar"
+  ];
+
+  replaceBaseModIds = [
+    # Examples, only add entries intentionally:
+    #
+    # "create_dragons_plus"
+    # "carryon"
+    "create_dragons_plus"
+  ];
+
+  /*
+    ──────────────────────────────────────────────────────────────────────────
+    Derived server trees
+    ──────────────────────────────────────────────────────────────────────────
+  */
+
+  mods = mc.mkModSet {
+    name = "atm10-mods";
+    baseMods = "${atmServerPack}/mods";
+    extraMods = extraMods;
+
+    inherit
+      removeBaseJars
+      replaceBaseModIds
+      ;
+  };
+
   voicechatConfig = pkgs.writeText "voicechat-server.properties" ''
     port=24454
     bind_address=0.0.0.0
@@ -68,81 +108,70 @@ let
     keep_alive=1000
   '';
 
-  /*
-    Immutable directory trees managed in the Minecraft server root.
+  config = mc.mkOverlayTree {
+    name = "atm10-config";
 
-    This is a list of semantic server-root directories, NOT a list of files.
+    sources = [
+      "${atmServerPack}/config"
+    ];
 
-    For every entry:
-
-      ATM10/<name>
-          +
-      minecraft/<name>   (if present)
-          +
-      generated extraFiles
-          =
-      server/<name>
-
-    So, for example:
-
-      ATM10/mods/
-          +
-      minecraft/mods/
-          ->
-      server/mods/
-
-    and:
-
-      ATM10/tacz/         (if the pack ever ships one)
-          +
-      minecraft/tacz/
-          ->
-      server/tacz/
-  */
-
-  treeSpecs = {
-    mods = { };
-
-    config = {
-      extraFiles = {
-        "voicechat/voicechat-server.properties" = voicechatConfig;
-      };
+    files = {
+      "voicechat/voicechat-server.properties" =
+        voicechatConfig;
     };
-
-    defaultconfigs = { };
-
-    kubejs = { };
-
-    datapacks = { };
-
-    tacz = { };
   };
 
-  # Build every tree through the same generic utility.
-  serverTrees = lib.mapAttrs (
-    name: spec:
-    mcLib.mkTree {
-      name = "atm10-${name}";
-      base = "${modpack}/${name}";
-      overlays = lib.optional (builtins.hasAttr name localTrees) localTrees.${name};
-      extraFiles = spec.extraFiles or { };
-    }
-  ) treeSpecs;
+  tacz = mc.mkOverlayTree {
+    name = "atm10-tacz";
+
+    sources = [
+      # ATM10 currently does not need to ship tacz/, but keeping the base
+      # source here makes the layout forward-compatible.
+      "${atmServerPack}/tacz"
+      extraTacz
+    ];
+  };
+
+  /*
+    Trees used unchanged from the official server pack.
+  */
+  atmTrees = {
+    defaultconfigs = "${atmServerPack}/defaultconfigs";
+    kubejs = "${atmServerPack}/kubejs";
+    datapacks = "${atmServerPack}/datapacks";
+  };
+
+  managedTrees =
+    atmTrees
+    // {
+      inherit mods config tacz;
+    };
 in
 {
   /*
+    ──────────────────────────────────────────────────────────────────────────
     Networking
-
-    TCP 25565 is handled by nix-minecraft through openFirewall.
-    Simple Voice Chat requires UDP 24454.
+    ──────────────────────────────────────────────────────────────────────────
   */
+
+  # TCP 25565 is opened by nix-minecraft via openFirewall.
+  # Simple Voice Chat needs UDP separately.
   networking.firewall.allowedUDPPorts = [
     24454
   ];
 
+  /*
+    ──────────────────────────────────────────────────────────────────────────
+    Minecraft
+    ──────────────────────────────────────────────────────────────────────────
+  */
+
   services.minecraft-servers = {
     enable = true;
+
+    # nix-minecraft manages eula.txt.
     eula = true;
+
     openFirewall = true;
 
     servers.shulker-atm = {
@@ -150,69 +179,66 @@ in
       autoStart = true;
       restart = "always";
 
-      # NeoForge package from nix-minecraft.
-      package = server;
+      package = serverPackage;
 
       /*
-        JVM
-
-        Minecraft 1.21.1 / NeoForge uses Java 21 supplied by the
-        nix-minecraft NeoForge package.
+        Keep JVM tuning intentionally conservative while stabilising the pack.
       */
-      jvmOpts = builtins.concatStringsSep " " [
+      jvmOpts = [
         "-Xms8G"
         "-Xmx14G"
-
-        # "-XX:+UseZGC"
-        # "-XX:+UseCompactObjectHeaders"
       ];
 
-      # server.properties
-
+      /*
+        nix-minecraft generates server.properties from this set.
+      */
       serverProperties = {
         server-port = 25565;
         server-ip = "";
+
         gamemode = "survival";
         difficulty = "normal";
-        motd = "§cч§6а§eт§aи§bк§d, §cа§6б§eо§aб§bа";
+
+        motd =
+          "§cч§6а§eт§aи§bк§d, §cа§6б§eо§aб§bа";
+
         max-players = 42;
+
         online-mode = false;
         white-list = false;
         enable-rcon = false;
         enforce-secure-profile = false;
       };
 
-      # Operators
-
       operators.eri = {
-        uuid = "2f240b6b-aef7-35aa-917f-952faeb3f8bc";
+        uuid =
+          "2f240b6b-aef7-35aa-917f-952faeb3f8bc";
+
         level = 4;
         bypassesPlayerLimit = true;
       };
 
       /*
-        Declarative immutable server trees.
-        serverTrees currently produces:
-          mods
-          config
-          defaultconfigs
-          kubejs
-          datapacks
-          tacz
-        minecraft/tacz therefore becomes:
-          <server root>/tacz/
-        It does NOT become:
-          <server root>/mods/tacz/
+        Declarative immutable server content.
+
+        nix-minecraft itself owns eula.txt and server.properties, so neither is
+        duplicated here.
       */
-      symlinks = serverTrees // {
-        "server-icon.png" = ../minecraft/server-icon.png;
-      };
+      symlinks =
+        managedTrees
+        // {
+          "server-icon.png" =
+            ../minecraft/server-icon.png;
+        };
 
       /*
-        local/ is intentionally absent.
-
-        It remains writable persistent/runtime state instead of becoming
-        an immutable /nix/store symlink.
+        Runtime state remains writable and unmanaged:
+          local/
+          world/
+          logs/
+          crash-reports/
+          serverconfig/
+          etc.
       */
     };
   };

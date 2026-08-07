@@ -146,5 +146,6 @@
     helix
     zellij
     gnumake
+    tmux
   ];
 }
