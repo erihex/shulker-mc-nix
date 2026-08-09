@@ -44,7 +44,17 @@ let
     };
 
   extraMods = repoDir "mods";
-  extraTacz = repoDir "tacz";
+
+  # Optional repository TaCZ content.
+  #
+  # builtins.path requires the path to exist during Nix evaluation, so do not
+  # call repoDir "tacz" unless minecraft/tacz actually exists.
+  extraTacz =
+    if builtins.pathExists (minecraftRoot + "/tacz") then
+      repoDir "tacz"
+    else
+      null;
+
   configOverrides = repoDir "config-overrides";
 
   /*
@@ -179,7 +189,8 @@ in
         Consequently:
           - ATM defaults are initial seeds.
           - config-overrides/ is authoritative for the paths it contains.
-          - minecraft/tacz/ is authoritative for custom TaCZ packs it contains.
+          - minecraft/tacz/, when present, is authoritative for custom TaCZ
+            packs it contains.
           - files created/modified only at runtime persist across restarts.
       */
       extraStartPre = ''
@@ -230,8 +241,10 @@ in
         # ATM10 7.3 may not contain tacz/, so this is deliberately optional.
         seed_tree ${atmServerPack}/tacz tacz
 
-        # Repository TaCZ content is authoritative.
-        overlay_tree ${extraTacz} tacz
+        # Repository TaCZ content is authoritative when minecraft/tacz exists.
+        ${lib.optionalString (extraTacz != null) ''
+          overlay_tree ${extraTacz} tacz
+        ''}
 
         # Explicit server-specific config is authoritative.
         overlay_tree ${configOverrides} config
