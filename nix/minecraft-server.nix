@@ -184,6 +184,7 @@ in
         white-list = false;
         enable-rcon = false;
         enforce-secure-profile = false;
+        allow-flight = true;
       };
 
       operators.eri = {
