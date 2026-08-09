@@ -90,14 +90,6 @@ let
       ;
   };
 
-  voicechatConfig = pkgs.writeText "voicechat-server.properties" ''
-    port=24454
-    bind_address=0.0.0.0
-    voice_chat_distance=48.0
-    max_voice_distance=64.0
-    keep_alive=1000
-  '';
-
   config = mc.mkOverlayTree {
     name = "atm10-config";
 
@@ -106,7 +98,18 @@ let
     ];
 
     files = {
-      "voicechat/voicechat-server.properties" = voicechatConfig;
+      "voicechat/voicechat-server.properties" = pkgs.writeText "voicechat-server.properties" ''
+        port=24454
+        bind_address=0.0.0.0
+        voice_chat_distance=48.0
+        max_voice_distance=64.0
+        keep_alive=1000
+      '';
+
+      "config/neologin-server.toml" = pkgs.writeText "neologin-server.toml" ''
+        [Database]
+        	databaseType = "sqlite"
+      '';
     };
   };
 
