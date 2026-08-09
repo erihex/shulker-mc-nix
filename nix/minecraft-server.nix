@@ -183,13 +183,21 @@ in
           - files created/modified only at runtime persist across restarts.
       */
       extraStartPre = ''
+        set -euo pipefail
+
         seed_tree() {
           source="$1"
           destination="$2"
 
+          # Some ATM server-pack directories are optional.
+          if [ ! -d "$source" ]; then
+            echo "Skipping absent seed directory: $source"
+            return 0
+          fi
+
           mkdir -p "$destination"
 
-          # Copy defaults without replacing any existing file.
+          # Seed defaults only. Existing runtime files always win.
           cp -r -n \
             --no-preserve=ownership,mode \
             "$source"/. \
@@ -200,25 +208,33 @@ in
           source="$1"
           destination="$2"
 
+          if [ ! -d "$source" ]; then
+            echo "Skipping absent overlay directory: $source"
+            return 0
+          fi
+
           mkdir -p "$destination"
 
-          # Repository-owned files intentionally replace the same destination.
+          # Repository-controlled files intentionally overwrite their targets.
           cp -r \
             --no-preserve=ownership,mode \
             "$source"/. \
             "$destination"/
         }
 
-        # Seed ATM runtime trees. Existing runtime state/configuration is kept.
         seed_tree ${atmServerPack}/config config
         seed_tree ${atmServerPack}/defaultconfigs defaultconfigs
         seed_tree ${atmServerPack}/kubejs kubejs
         seed_tree ${atmServerPack}/datapacks datapacks
+
+        # ATM10 7.3 may not contain tacz/, so this is deliberately optional.
         seed_tree ${atmServerPack}/tacz tacz
 
-        # Explicit repository-owned configuration and custom TaCZ content.
-        overlay_tree ${configOverrides} config
+        # Repository TaCZ content is authoritative.
         overlay_tree ${extraTacz} tacz
+
+        # Explicit server-specific config is authoritative.
+        overlay_tree ${configOverrides} config
       '';
     };
   };
