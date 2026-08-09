@@ -101,7 +101,7 @@ in
     eula = true;
     openFirewall = true;
 
-    servers.shulker-atm = {
+    servers.shulker = {
       enable = true;
       autoStart = true;
       restart = "always";
@@ -110,7 +110,7 @@ in
 
       jvmOpts = [
         "-Xms8G"
-        "-Xmx29G"
+        "-Xmx30G"
         "-XX:+UseZGC"
         # "-XX:+ZGenerational" # Java 21 only
         "-XX:+UseCompactObjectHeaders" # Java 25 only
