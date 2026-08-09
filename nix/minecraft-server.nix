@@ -14,7 +14,7 @@ let
   minecraftRoot = ../minecraft;
 
   serverPackage = pkgs.neoforgeServers.neoforge-1_21_1.override {
-    jre_headless = pkgs.corretto21;
+    jre_headless = pkgs.corretto25;
   };
 
   atmArchive = builtins.path {
@@ -55,7 +55,6 @@ let
     replaceBaseModIds:
       Extra mods explicitly allowed to replace ATM-provided mods.
   */
-
   removeBaseJars = [
     "connectivity-1.21.1-7.6.jar"
 
@@ -79,7 +78,6 @@ let
   ];
 
   # Derived trees
-
   mods = mc.mkModSet {
     name = "atm10-mods";
 
@@ -169,8 +167,8 @@ in
         "-Xms8G"
         "-Xmx29G"
         "-XX:+UseZGC"
-        "-XX:+ZGenerational" # Java 21 only
-        # "-XX:+UseCompactObjectHeaders" # Java 25 only
+        # "-XX:+ZGenerational" # Java 21 only
+        "-XX:+UseCompactObjectHeaders" # Java 25 only
       ];
 
       serverProperties = {
