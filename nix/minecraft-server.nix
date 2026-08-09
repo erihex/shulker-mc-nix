@@ -105,11 +105,6 @@ let
         max_voice_distance=64.0
         keep_alive=1000
       '';
-
-      "config/neologin-server.toml" = pkgs.writeText "neologin-server.toml" ''
-        [Database]
-        	databaseType = "sqlite"
-      '';
     };
   };
 
