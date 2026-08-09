@@ -45,6 +45,7 @@ let
 
   extraMods = repoDir "mods";
   extraTacz = repoDir "tacz";
+  configOverrides = repoDir "config-overrides";
 
   /*
     Mod policy
@@ -77,7 +78,7 @@ let
     "create_dragons_plus"
   ];
 
-  # Derived trees
+  # Immutable mod set.
   mods = mc.mkModSet {
     name = "atm10-mods";
 
@@ -88,60 +89,6 @@ let
       removeBaseJars
       replaceBaseModIds
       ;
-  };
-
-  config = mc.mkOverlayTree {
-    name = "atm10-config";
-
-    sources = [
-      "${atmServerPack}/config"
-    ];
-
-    files = {
-      "voicechat/voicechat-server.properties" = pkgs.writeText "voicechat-server.properties" ''
-        port=24454
-        bind_address=0.0.0.0
-        voice_chat_distance=48.0
-        max_voice_distance=64.0
-        keep_alive=1000
-      '';
-    };
-  };
-
-  tacz = mc.mkOverlayTree {
-    name = "atm10-tacz";
-
-    sources = [
-      "${atmServerPack}/tacz"
-      extraTacz
-    ];
-  };
-
-  /*
-    nix-minecraft content model
-
-    symlinks:
-      immutable content which should remain read-only.
-
-    files:
-      content copied into the server directory and therefore writable at
-      runtime. Config/KubeJS/TaCZ belong here because mods may update them.
-  */
-
-  immutableContent = {
-    inherit mods;
-
-    "server-icon.png" = ../minecraft/server-icon.png;
-  };
-
-  writableContent = {
-    inherit config tacz;
-
-    defaultconfigs = "${atmServerPack}/defaultconfigs";
-
-    kubejs = "${atmServerPack}/kubejs";
-
-    datapacks = "${atmServerPack}/datapacks";
   };
 in
 {
@@ -181,7 +128,10 @@ in
         max-players = 42;
 
         online-mode = false;
+
+        # OfflineWhitelist owns access control. Keep vanilla whitelist disabled.
         white-list = false;
+
         enable-rcon = false;
         enforce-secure-profile = false;
         allow-flight = true;
@@ -189,26 +139,87 @@ in
 
       operators.eri = {
         uuid = "2f240b6b-aef7-35aa-917f-952faeb3f8bc";
-
         level = 4;
         bypassesPlayerLimit = true;
       };
 
-      # Immutable store-backed content.
-      symlinks = immutableContent;
+      /*
+        nix-minecraft ownership model
 
-      # Writable copies managed by nix-minecraft.
-      files = writableContent;
+        symlinks:
+          Immutable, declarative content. This may safely point into /nix/store.
+
+        files:
+          nix-minecraft-managed writable copies. They are intentionally deleted
+          after the service stops, so runtime-persistent state MUST NOT live here.
+
+        Runtime-mutable trees such as config/, defaultconfigs/, kubejs/, tacz/
+        and datapacks/ are therefore created by extraStartPre and are not tracked
+        in .nix-minecraft-managed.
+      */
+      symlinks = {
+        inherit mods;
+        "server-icon.png" = ../minecraft/server-icon.png;
+      };
+
+      files = { };
 
       /*
-        Runtime state intentionally remains unmanaged:
-          local/
-          world/
-          logs/
-          crash-reports/
-          serverconfig/
-          etc.
+        Persistent content policy
+
+        seed_tree:
+          Copy ATM defaults only when a destination path does not exist.
+          Existing server/mod state always wins.
+
+        overlay_tree:
+          Copy repository-owned content every start. This makes explicitly
+          version-controlled overrides extendable without making the whole
+          runtime config tree disposable.
+
+        Consequently:
+          - ATM defaults are initial seeds.
+          - config-overrides/ is authoritative for the paths it contains.
+          - minecraft/tacz/ is authoritative for custom TaCZ packs it contains.
+          - files created/modified only at runtime persist across restarts.
       */
+      extraStartPre = ''
+        seed_tree() {
+          source="$1"
+          destination="$2"
+
+          mkdir -p "$destination"
+
+          # Copy defaults without replacing any existing file.
+          cp -r -n \
+            --no-preserve=ownership,mode \
+            "$source"/. \
+            "$destination"/
+        }
+
+        overlay_tree() {
+          source="$1"
+          destination="$2"
+
+          mkdir -p "$destination"
+
+          # Repository-owned files intentionally replace the same destination.
+          cp -r \
+            --no-preserve=ownership,mode \
+            "$source"/. \
+            "$destination"/
+        }
+
+        # Seed ATM runtime trees. Existing runtime state/configuration is kept.
+        seed_tree ${atmServerPack}/config config
+        seed_tree ${atmServerPack}/defaultconfigs defaultconfigs
+        seed_tree ${atmServerPack}/kubejs kubejs
+        seed_tree ${atmServerPack}/datapacks datapacks
+        seed_tree ${atmServerPack}/tacz tacz
+
+        # Explicit repository-owned configuration and custom TaCZ content.
+        overlay_tree ${configOverrides} config
+        overlay_tree ${extraTacz} tacz
+      '';
     };
   };
 }
