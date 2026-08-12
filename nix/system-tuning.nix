@@ -116,5 +116,8 @@
     zellij
     gnumake
     tmux
+    ripgrep
+    less
+    busybox
   ];
 }
